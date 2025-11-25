@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>轻量AI对话界面</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: #f5f5f5;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    /* 登录页面样式 */
+    .login-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    .login-box {
+      background: white;
+      padding: 2.5rem;
+      border-radius: 12px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+      width: 100%;
+      max-width: 380px;
+    }
+    .login-box h1 {
+      text-align: center;
+      color: #2c3e50;
+      margin-bottom: 0.5rem;
+      font-size: 1.8rem;
+    }
+    .login-box p {
+      text-align: center;
+      color: #7f8c8d;
+      margin-bottom: 2rem;
+      font-size: 0.9rem;
+    }
+    .login-box .form-group {
+      margin-bottom: 1.2rem;
+    }
+    .login-box label {
+      display: block;
+      margin-bottom: 0.5rem;
+      color: #2c3e50;
+      font-weight: 500;
+    }
+    .login-box input {
+      width: 100%;
+      padding: 0.8rem 1rem;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 14px;
+      transition: border-color 0.3s;
+    }
+    .login-box input:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+</style>
+</head>
+<body>
+  <!-- 登录页面 -->
+  <div class="login-container" id="loginPage">
+    <div class="login-box">
+      <h1>🤖 AI 对话</h1>
+      <p>请登录以继续使用</p>
+      <div class="form-group">
+        <label>账号</label>
+        <input type="text" id="loginUsername" placeholder="请输入账号">
+      </div>
+      <div class="form-group">
+        <label>密码</label>
+        <input type="password" id="loginPassword" placeholder="请输入密码" onkeypress="handleLoginKeyPress(event)">
+      </div>
+      <div id="loginError" class="error" style="display: none;"></div>
+      <button class="login-btn" onclick="login()">登 录</button>
+    </div>
+  </div>
+
+  <!-- 主页面（对话界面） -->
+  <div id="mainPage" style="display: none; height: 100vh; flex-direction: column;">
+    <div class="header">
+      <div class="header-content">
+        <div>
+          <h1>🤖 轻量AI对话界面</h1>
+          <div>简洁的AI对话界面，支持自定义配置</div>
+        </div>
+        <button class="logout-btn" onclick="logout()">退出登录</button>
+      </div>
+    </div>
+
+    <div class="config-panel">
+      <h3>⚙️ 配置设置</h3>
+      <div class="config-row">
+        <label>API端点:</label>
+        <input type="text" id="endpoint" placeholder="https://api.openai.com/v1" value="https://api.openai.com/v1">
+      </div>
+      <div class="config-row">
+        <label>模型:</label>
+        <input type="text" id="model" placeholder="gpt-3.5-turbo" value="gpt-3.5-turbo">
+      </div>
+      <div class="config-row">
+        <label>API密钥:</label>
+        <input type="password" id="apiKey" placeholder="输入你的API密钥">
+        <button onclick="saveConfig()">保存配置</button>
+      </div>
+    </div>
+
+    <div class="chat-container">
+      <div class="chat-messages" id="chatMessages">
+        <div class="message assistant">
+          <div class="message-bubble">你好！我是AI助手。请在上方配置你的API设置，然后我们就可以开始对话了。</div>
+        </div>
+      </div>
+      <div class="chat-input">
+        <div class="input-row">
+          <input type="text" id="userInput" placeholder="输入你的消息..." onkeypress="handleKeyPress(event)">
+          <button onclick="sendMessage()" id="sendButton">发送</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+
+<style>
+    .login-btn {
+      width: 100%;
+      padding: 0.9rem;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .login-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+    }
+    .login-btn:disabled {
+      background: #95a5a6;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+    /* 主页面样式 */
+    .header {
+      background: #2c3e50;
+      color: white;
+      padding: 1rem;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .header-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .header h1 {
+      font-size: 1.5rem;
+      margin-bottom: 0.5rem;
+    }
+    .logout-btn {
+      padding: 0.5rem 1rem;
+      background: #e74c3c;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .logout-btn:hover {
+      background: #c0392b;
+    }
+    .config-panel {
+      background: white;
+      padding: 1rem;
+      margin: 1rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .config-row {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 0.5rem;
+      align-items: center;
+    }
+    .config-row label {
+      min-width: 80px;
+      font-weight: 500;
+    }
+    .config-row input {
+      flex: 1;
+      padding: 0.5rem;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    .config-row button {
+      padding: 0.5rem 1rem;
+      background: #3498db;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .config-row button:hover {
+      background: #2980b9;
+    }
+    .chat-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      margin: 0 1rem 1rem 1rem;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      overflow: hidden;
+    }
+    .chat-messages {
+      flex: 1;
+      padding: 1rem;
+      overflow-y: auto;
+      background: #fafafa;
+    }
+    .message {
+      margin-bottom: 1rem;
+      display: flex;
+      flex-direction: column;
+    }
+    .message.user {
+      align-items: flex-end;
+    }
+    .message.assistant {
+      align-items: flex-start;
+    }
+    .message-bubble {
+      max-width: 70%;
+      padding: 0.75rem 1rem;
+      border-radius: 18px;
+      word-wrap: break-word;
+      white-space: pre-wrap;
+    }
+    .message.user .message-bubble {
+      background: #3498db;
+      color: white;
+    }
+    .message.assistant .message-bubble {
+      background: #ecf0f1;
+      color: #2c3e50;
+    }
+    .message-time {
+      font-size: 0.75rem;
+      color: #7f8c8d;
+      margin-top: 0.25rem;
+    }
+    .chat-input {
+      padding: 1rem;
+      background: white;
+      border-top: 1px solid #ecf0f1;
+    }
+    .input-row {
+      display: flex;
+      gap: 0.5rem;
+    }
+    .input-row input {
+      flex: 1;
+      padding: 0.75rem;
+      border: 1px solid #ddd;
+      border-radius: 24px;
+      font-size: 14px;
+      outline: none;
+    }
+    .input-row input:focus {
+      border-color: #3498db;
+    }
+    .input-row button {
+      padding: 0.75rem 1.5rem;
+      background: #27ae60;
+      color: white;
+      border: none;
+      border-radius: 24px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .input-row button:hover {
+      background: #229954;
+    }
+    .input-row button:disabled {
+      background: #95a5a6;
+      cursor: not-allowed;
+    }
+    .error {
+      background: #e74c3c;
+      color: white;
+      padding: 0.5rem;
+      border-radius: 4px;
+      margin-bottom: 1rem;
+      font-size: 14px;
+    }
+  </style>
+
+<script>
+    // 全局变量
+    let authToken = localStorage.getItem('auth_token');
+
+    // 页面加载时检查登录状态
+    document.addEventListener('DOMContentLoaded', function() {
+      checkAuth();
+    });
+
+    // 检查登录状态
+    function checkAuth() {
+      if (authToken) {
+        showChatPage();
+        loadConfig();
+      } else {
+        showLoginPage();
+      }
+    }
+
+    // 显示登录页面
+    function showLoginPage() {
+      document.getElementById('loginPage').style.display = 'flex';
+      document.getElementById('mainPage').style.display = 'none';
+    }
+
+    // 显示对话页面
+    function showChatPage() {
+      document.getElementById('loginPage').style.display = 'none';
+      document.getElementById('mainPage').style.display = 'flex';
+    }
+
+    // 登录
+    async function login() {
+      const username = document.getElementById('loginUsername').value.trim();
+      const password = document.getElementById('loginPassword').value;
+      const errorDiv = document.getElementById('loginError');
+
+      if (!username || !password) {
+        errorDiv.textContent = '请输入账号和密码';
+        errorDiv.style.display = 'block';
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ username, password })
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+          authToken = result.token;
+          localStorage.setItem('auth_token', authToken);
+          errorDiv.style.display = 'none';
+          showChatPage();
+          loadConfig();
+        } else {
+          errorDiv.textContent = result.error || '登录失败';
+          errorDiv.style.display = 'block';
+        }
+      } catch (error) {
+        errorDiv.textContent = '网络错误: ' + error.message;
+        errorDiv.style.display = 'block';
+      }
+    }
+
+    // 退出登录
+    async function logout() {
+      try {
+        await fetch('/api/logout', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${authToken}`
+          }
+        });
+      } catch (error) {
+        console.error('退出登录失败:', error);
+      }
+
+      authToken = null;
+      localStorage.removeItem('auth_token');
+      showLoginPage();
+    }
+
+    // 处理登录回车键
+    function handleLoginKeyPress(event) {
+      if (event.key === 'Enter') {
+        login();
+      }
+    }
+
+    // 加载配置
+    async function loadConfig() {
+      try {
+        const response = await fetch('/api/config', {
+          headers: {
+            'Authorization': `Bearer ${authToken}`
+          }
+        });
+
+        if (response.status === 401) {
+          logout();
+          return;
+        }
+
+        const config = await response.json();
+        document.getElementById('endpoint').value = config.endpoint || '';
+        document.getElementById('model').value = config.model || '';
+        document.getElementById('apiKey').value = config.api_key || '';
+      } catch (error) {
+        console.error('加载配置失败:', error);
+      }
+    }
+
+    // 保存配置
+    async function saveConfig() {
+      const endpoint = document.getElementById('endpoint').value;
+      const model = document.getElementById('model').value;
+      const apiKey = document.getElementById('apiKey').value;
+
+      try {
+        const response = await fetch('/api/config', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authToken}`
+          },
+          body: JSON.stringify({
+            endpoint: endpoint,
+            model: model,
+            api_key: apiKey
+          })
+        });
+
+        if (response.status === 401) {
+          logout();
+          return;
+        }
+
+        const result = await response.json();
+        if (response.ok) {
+          addMessage('系统', '配置已保存！', 'assistant');
+        } else {
+          addMessage('系统', '配置保存失败: ' + result.error, 'assistant');
+        }
+      } catch (error) {
+        addMessage('系统', '配置保存失败: ' + error.message, 'assistant');
+      }
+    }
+
+    // 发送消息
+    async function sendMessage() {
+      const userInput = document.getElementById('userInput');
+      const message = userInput.value.trim();
+
+      if (!message) return;
+
+      userInput.value = '';
+      addMessage('你', message, 'user');
+
+      const loadingMessage = addMessage('AI', '正在思考...', 'assistant');
+
+      try {
+        const response = await fetch('/api/chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authToken}`
+          },
+          body: JSON.stringify({ message: message })
+        });
+
+        loadingMessage.remove();
+
+        if (response.status === 401) {
+          logout();
+          return;
+        }
+
+        const result = await response.json();
+
+        if (response.ok) {
+          addMessage('AI', result.response, 'assistant');
+        } else {
+          addMessage('系统', '错误: ' + result.error, 'assistant');
+        }
+      } catch (error) {
+        loadingMessage.remove();
+        addMessage('系统', '网络错误: ' + error.message, 'assistant');
+      }
+    }
+
+    // 添加消息到聊天区域
+    function addMessage(sender, content, type) {
+      const chatMessages = document.getElementById('chatMessages');
+      const messageDiv = document.createElement('div');
+      messageDiv.className = `message ${type}`;
+
+      const now = new Date();
+      const timeString = now.toLocaleTimeString();
+
+      messageDiv.innerHTML = `
+        <div class="message-bubble">${escapeHtml(content)}</div>
+        <div class="message-time">${sender} · ${timeString}</div>
+      `;
+
+      chatMessages.appendChild(messageDiv);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+
+      return messageDiv;
+    }
+
+    // HTML 转义防止 XSS
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // 处理回车键发送消息
+    function handleKeyPress(event) {
+      if (event.key === 'Enter') {
+        sendMessage();
+      }
+    }
+  </script>
