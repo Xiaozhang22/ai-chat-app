@@ -2,6 +2,8 @@
 
 基于 Cloudflare Pages + Workers + KV 的无服务器 AI 对话应用，支持自定义 API 端点和模型配置。
 
+> 💡 本项目使用 **Cloudflare Pages Functions**，它会自动将 `functions/` 目录下的代码部署为 Workers。你只需要部署到 Pages，无需单独创建 Workers 项目。
+
 ## ✨ 功能特性
 
 - 🔐 用户登录认证（基于 Token，24小时有效期）
