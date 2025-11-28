@@ -425,7 +425,16 @@
         const config = await response.json();
         document.getElementById('endpoint').value = config.endpoint || '';
         document.getElementById('model').value = config.model || '';
-        document.getElementById('apiKey').value = config.api_key || '';
+        
+        // 🔒 安全加固：API Key 不再从服务器返回，只显示是否已设置
+        const apiKeyInput = document.getElementById('apiKey');
+        if (config.api_key_set) {
+          apiKeyInput.placeholder = '已设置（留空保持不变，输入新值将覆盖）';
+          apiKeyInput.value = '';
+        } else {
+          apiKeyInput.placeholder = '输入你的API密钥';
+          apiKeyInput.value = '';
+        }
       } catch (error) {
         console.error('加载配置失败:', error);
       }

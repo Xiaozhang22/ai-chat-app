@@ -28,7 +28,12 @@ export async function onRequest(context) {
       const storedConfig = await env.AI_CHAT_CONFIG.get('user_config');
       const config = storedConfig ? JSON.parse(storedConfig) : DEFAULT_CONFIG;
 
-      return new Response(JSON.stringify(config), {
+      // 🔒 安全加固：不返回真实的 API Key
+      return new Response(JSON.stringify({
+        endpoint: config.endpoint,
+        model: config.model,
+        api_key_set: !!config.api_key  // 只返回是否已设置，不返回真实值
+      }), {
         headers: {
           'Content-Type': 'application/json',
           'Access-Control-Allow-Origin': '*',
@@ -57,18 +62,32 @@ export async function onRequest(context) {
       const storedConfig = await env.AI_CHAT_CONFIG.get('user_config');
       const currentConfig = storedConfig ? JSON.parse(storedConfig) : DEFAULT_CONFIG;
 
+      // 🔒 安全加固：只有传入非空的新 API Key 才更新，否则保留原有值
+      let newApiKey = currentConfig.api_key;
+      if (data.api_key && data.api_key.trim() !== '') {
+        newApiKey = data.api_key.trim();
+      }
+
       // 合并新配置
       const newConfig = {
         endpoint: data.endpoint || currentConfig.endpoint,
         model: data.model || currentConfig.model,
-        api_key: data.api_key !== undefined ? data.api_key : currentConfig.api_key,
+        api_key: newApiKey,
       };
 
       // 写入 KV
       await env.AI_CHAT_CONFIG.put('user_config', JSON.stringify(newConfig));
 
+      // 🔒 返回时不包含真实的 API Key
       return new Response(
-        JSON.stringify({ status: 'success', config: newConfig }),
+        JSON.stringify({
+          status: 'success',
+          config: {
+            endpoint: newConfig.endpoint,
+            model: newConfig.model,
+            api_key_set: !!newConfig.api_key
+          }
+        }),
         {
           headers: {
             'Content-Type': 'application/json',
