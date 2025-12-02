@@ -111,7 +111,16 @@
       </div>
       <div class="config-row">
         <label>API密钥:</label>
-        <input type="password" id="apiKey" placeholder="输入你的API密钥">
+        <select id="apiKeySelect" onchange="handleApiKeySelectChange()">
+          <option value="">-- 选择API密钥 --</option>
+          <option value="1">API Key 1</option>
+          <option value="2">API Key 2</option>
+          <option value="3">API Key 3</option>
+          <option value="4">API Key 4</option>
+          <option value="5">API Key 5</option>
+          <option value="custom">重新输入新密钥</option>
+        </select>
+        <input type="password" id="apiKey" placeholder="输入你的API密钥" style="display: none;">
         <button onclick="saveConfig()">保存配置</button>
       </div>
     </div>
@@ -201,12 +210,20 @@
       min-width: 80px;
       font-weight: 500;
     }
-    .config-row input {
+    .config-row input, .config-row select {
       flex: 1;
       padding: 0.5rem;
       border: 1px solid #ddd;
       border-radius: 4px;
       font-size: 14px;
+    }
+    .config-row select {
+      cursor: pointer;
+      background-color: white;
+    }
+    .config-row select:focus {
+      outline: none;
+      border-color: #3498db;
     }
     .config-row button {
       padding: 0.5rem 1rem;
@@ -426,17 +443,68 @@
         document.getElementById('endpoint').value = config.endpoint || '';
         document.getElementById('model').value = config.model || '';
         
-        // 🔒 安全加固：API Key 不再从服务器返回，只显示是否已设置
+        // 加载API密钥选择状态
+        const apiKeySelect = document.getElementById('apiKeySelect');
         const apiKeyInput = document.getElementById('apiKey');
-        if (config.api_key_set) {
-          apiKeyInput.placeholder = '已设置（留空保持不变，输入新值将覆盖）';
-          apiKeyInput.value = '';
+        
+        if (config.selected_api_key) {
+          apiKeySelect.value = config.selected_api_key;
+          apiKeyInput.style.display = 'none';
+        } else if (config.api_key_set) {
+          apiKeySelect.value = 'custom';
+          apiKeyInput.style.display = 'none';
         } else {
-          apiKeyInput.placeholder = '输入你的API密钥';
-          apiKeyInput.value = '';
+          apiKeySelect.value = '';
+          apiKeyInput.style.display = 'none';
         }
+        
+        // 加载可用的API密钥列表状态
+        loadApiKeyStatus();
       } catch (error) {
         console.error('加载配置失败:', error);
+      }
+    }
+
+    // 加载API密钥状态（显示哪些已设置）
+    async function loadApiKeyStatus() {
+      try {
+        const response = await fetch('/api/config/keys', {
+          headers: {
+            'Authorization': `Bearer ${authToken}`
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const apiKeySelect = document.getElementById('apiKeySelect');
+          
+          // 更新选项显示，标记已设置的密钥
+          for (let i = 1; i <= 5; i++) {
+            const option = apiKeySelect.querySelector(`option[value="${i}"]`);
+            if (option) {
+              const isSet = data.keys_status[`key${i}`];
+              option.textContent = `API Key ${i}${isSet ? ' ✓' : ''}`;
+            }
+          }
+        }
+      } catch (error) {
+        console.error('加载API密钥状态失败:', error);
+      }
+    }
+
+    // 处理API密钥选择变化
+    function handleApiKeySelectChange() {
+      const apiKeySelect = document.getElementById('apiKeySelect');
+      const apiKeyInput = document.getElementById('apiKey');
+      
+      if (apiKeySelect.value === 'custom') {
+        apiKeyInput.style.display = 'block';
+        apiKeyInput.placeholder = '输入新的API密钥';
+        apiKeyInput.value = '';
+        apiKeyInput.focus();
+      } else {
+        apiKeyInput.style.display = 'none';
+        apiKeyInput.value = '';
       }
     }
 
@@ -444,7 +512,34 @@
     async function saveConfig() {
       const endpoint = document.getElementById('endpoint').value;
       const model = document.getElementById('model').value;
-      const apiKey = document.getElementById('apiKey').value;
+      const apiKeySelect = document.getElementById('apiKeySelect');
+      const apiKeyInput = document.getElementById('apiKey');
+      
+      const selectedKey = apiKeySelect.value;
+      
+      if (!selectedKey) {
+        addMessage('系统', '请选择或输入API密钥', 'assistant');
+        return;
+      }
+
+      const configData = {
+        endpoint: endpoint,
+        model: model
+      };
+
+      // 如果选择了预设的密钥（1-5）
+      if (selectedKey >= '1' && selectedKey <= '5') {
+        configData.selected_api_key = selectedKey;
+      } 
+      // 如果选择了"重新输入"
+      else if (selectedKey === 'custom') {
+        const newApiKey = apiKeyInput.value.trim();
+        if (!newApiKey) {
+          addMessage('系统', '请输入新的API密钥', 'assistant');
+          return;
+        }
+        configData.new_api_key = newApiKey;
+      }
 
       try {
         const response = await fetch('/api/config', {
@@ -453,11 +548,7 @@
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${authToken}`
           },
-          body: JSON.stringify({
-            endpoint: endpoint,
-            model: model,
-            api_key: apiKey
-          })
+          body: JSON.stringify(configData)
         });
 
         if (response.status === 401) {
@@ -468,6 +559,8 @@
         const result = await response.json();
         if (response.ok) {
           addMessage('系统', '配置已保存！', 'assistant');
+          // 重新加载配置以更新状态
+          loadConfig();
         } else {
           addMessage('系统', '配置保存失败: ' + result.error, 'assistant');
         }

@@ -8,5 +8,5 @@ compatibility_date = "2025-01-01"
 # 绑定 KV 存储
 # 注意：部署前需要在 Cloudflare 控制台创建 KV 命名空间，并替换下面的 id
 [[kv_namespaces]]
-binding = "AI_CHAT_CONFIG"
-id = "14804ad11cc24063adcac00caec8b9bd"
+binding = "AI_CHAT_KEYS"
+id = "2e01f73878a246d59396199da46e09bf"

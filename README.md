@@ -36,7 +36,7 @@ ai-chat-app/
 1. 登录 [Cloudflare 控制台](https://dash.cloudflare.com/)
 2. 左侧菜单选择「Workers 和 Pages」→「KV」
 3. 点击「创建命名空间」
-4. 输入名称（如 `AI_CHAT_CONFIG`），点击创建
+4. 输入名称（如 `AI_CHAT_KEYS`），点击创建
 5. **记录命名空间的 ID**（后续配置需要）
 
 ### 第二步：配置项目
@@ -45,7 +45,7 @@ ai-chat-app/
 
 ```toml
 [[kv_namespaces]]
-binding = "AI_CHAT_CONFIG"
+binding = "AI_CHAT_KEYS"
 id = "你的KV命名空间ID"  # ← 替换这里
 ```
 
@@ -75,7 +75,7 @@ git push -u origin main
 1. 部署完成后，进入项目设置
 2. 选择「Functions」→「KV 命名空间绑定」
 3. 添加绑定：
-   - 变量名称：`AI_CHAT_CONFIG`
+   - 变量名称：`AI_CHAT_KEYS`
    - KV 命名空间：选择你创建的命名空间
 4. 重新部署项目使绑定生效
 
@@ -94,9 +94,18 @@ git push -u origin main
 3. 配置 API 设置：
    - API 端点：OpenAI 兼容的 API 地址
    - 模型：如 `gpt-3.5-turbo`、`gpt-4` 等
-   - API 密钥：你的 API Key
+   - API 密钥：可以选择已保存的密钥（API Key 1-5）或选择"重新输入新密钥"
 4. 点击「保存配置」
 5. 开始与 AI 对话
+
+## 🔑 API密钥管理
+
+系统支持保存最多5个API密钥，方便在不同密钥之间切换：
+
+- **API Key 1-5**：预设的5个密钥槽位，可以保存不同的API密钥
+- **重新输入新密钥**：输入新的API密钥，系统会自动保存到第一个空位置
+- **安全存储**：所有API密钥都加密存储在Cloudflare KV中，前端永远不会显示真实密钥
+- **状态显示**：已设置的密钥会在选项后显示 ✓ 标记
 
 ## 🔧 API 接口说明
 

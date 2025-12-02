@@ -4,12 +4,13 @@
 const DEFAULT_CONFIG = {
   endpoint: 'https://api.openai.com/v1',
   model: 'gpt-3.5-turbo',
-  api_key: ''
+  selected_api_key: ''  // 当前选择的API密钥编号�?-5�?
 };
 
 export async function onRequest(context) {
   const { request, env } = context;
   const method = request.method;
+  const url = new URL(request.url);
 
   // 处理 OPTIONS 预检请求
   if (method === 'OPTIONS') {
@@ -22,17 +23,49 @@ export async function onRequest(context) {
     });
   }
 
-  // GET 请求：获取配置
+  // GET /api/config/keys - 获取API密钥状�?
+  if (method === 'GET' && url.pathname === '/api/config/keys') {
+    try {
+      const keysStatus = {};
+      for (let i = 1; i <= 5; i++) {
+        const key = await env.AI_CHAT_KEYS.get(`api_key_${i}`);
+        keysStatus[`key${i}`] = !!key;
+      }
+
+      return new Response(JSON.stringify({
+        keys_status: keysStatus
+      }), {
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+        },
+      });
+    } catch (error) {
+      return new Response(
+        JSON.stringify({ error: '获取密钥状态失�? ' + error.message }),
+        {
+          status: 500,
+          headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+          },
+        }
+      );
+    }
+  }
+
+  // GET 请求：获取配�?
   if (method === 'GET') {
     try {
-      const storedConfig = await env.AI_CHAT_CONFIG.get('user_config');
+      const storedConfig = await env.AI_CHAT_KEYS.get('user_config');
       const config = storedConfig ? JSON.parse(storedConfig) : DEFAULT_CONFIG;
 
-      // 🔒 安全加固：不返回真实的 API Key
+      // 🔒 安全加固：不返回真实�?API Key
       return new Response(JSON.stringify({
         endpoint: config.endpoint,
         model: config.model,
-        api_key_set: !!config.api_key  // 只返回是否已设置，不返回真实值
+        selected_api_key: config.selected_api_key || '',
+        api_key_set: !!config.selected_api_key
       }), {
         headers: {
           'Content-Type': 'application/json',
@@ -53,39 +86,60 @@ export async function onRequest(context) {
     }
   }
 
-  // POST 请求：保存配置
+  // POST 请求：保存配�?
   if (method === 'POST') {
     try {
       const data = await request.json();
 
       // 获取当前配置
-      const storedConfig = await env.AI_CHAT_CONFIG.get('user_config');
+      const storedConfig = await env.AI_CHAT_KEYS.get('user_config');
       const currentConfig = storedConfig ? JSON.parse(storedConfig) : DEFAULT_CONFIG;
 
-      // 🔒 安全加固：只有传入非空的新 API Key 才更新，否则保留原有值
-      let newApiKey = currentConfig.api_key;
-      if (data.api_key && data.api_key.trim() !== '') {
-        newApiKey = data.api_key.trim();
+      // 处理API密钥
+      let selectedKey = currentConfig.selected_api_key;
+
+      // 如果选择了预设的密钥�?-5�?
+      if (data.selected_api_key && data.selected_api_key >= '1' && data.selected_api_key <= '5') {
+        selectedKey = data.selected_api_key;
+      }
+      // 如果提供了新的API密钥，保存到下一个可用位置或更新现有位置
+      else if (data.new_api_key && data.new_api_key.trim() !== '') {
+        const newKey = data.new_api_key.trim();
+        
+        // 找到第一个空位置，如果都满了则使用位�?
+        let targetSlot = '1';
+        for (let i = 1; i <= 5; i++) {
+          const existingKey = await env.AI_CHAT_KEYS.get(`api_key_${i}`);
+          if (!existingKey) {
+            targetSlot = i.toString();
+            break;
+          }
+        }
+        
+        // 保存新密�?
+        await env.AI_CHAT_KEYS.put(`api_key_${targetSlot}`, newKey);
+        selectedKey = targetSlot;
       }
 
-      // 合并新配置
+      // 合并新配�?
       const newConfig = {
         endpoint: data.endpoint || currentConfig.endpoint,
         model: data.model || currentConfig.model,
-        api_key: newApiKey,
+        selected_api_key: selectedKey,
       };
 
       // 写入 KV
-      await env.AI_CHAT_CONFIG.put('user_config', JSON.stringify(newConfig));
+      await env.AI_CHAT_KEYS.put('user_config', JSON.stringify(newConfig));
 
-      // 🔒 返回时不包含真实的 API Key
+      // 🔒 返回时不包含真实�?API Key
       return new Response(
         JSON.stringify({
           status: 'success',
           config: {
             endpoint: newConfig.endpoint,
             model: newConfig.model,
-            api_key_set: !!newConfig.api_key
+            selected_api_key: newConfig.selected_api_key,
+            api_key_set: !!newConfig.selected_api_key
           }
         }),
         {

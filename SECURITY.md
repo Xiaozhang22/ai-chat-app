@@ -1,10 +1,35 @@
 # API Key 安全性分析与加固方案
 
-## 当前问题：为什么 API Key 可以被获取？
+## ✅ 已实施的安全加固
 
-### 问题根源
+### 多密钥管理系统
 
-当前设计中，API Key 的完整值会在前端和后端之间传输：
+当前版本已实施「API Key 只存不取」的安全方案：
+
+1. **多密钥存储**：支持保存最多5个API密钥，存储在独立的KV键中（`api_key_1` 到 `api_key_5`）
+2. **密钥不下发**：前端永远不会接收到真实的API密钥值
+3. **状态标记**：只返回密钥是否已设置的布尔值和选择的密钥编号
+4. **服务器端使用**：Workers在发送AI请求时直接从KV读取密钥
+
+### 安全流程
+
+```
+保存新密钥：
+前端 → 新密钥 → Workers → KV存储（api_key_1到api_key_5）
+
+加载配置：
+前端 ← 密钥编号 + 状态标记 ← Workers ← KV存储
+（不返回真实密钥）
+
+AI对话：
+前端 → 用户消息 → Workers → 从KV读取真实密钥 → AI API
+```
+
+## 历史问题：为什么旧版本 API Key 可以被获取？
+
+### 问题根源（已修复）
+
+旧版本设计中，API Key 的完整值会在前端和后端之间传输：
 
 1. **保存配置时**：前端 POST 请求将 API Key 明文发送到 `/api/config`
 2. **加载配置时**：后端 GET 响应将 API Key 明文返回给前端
@@ -29,111 +54,139 @@
 
 ---
 
-## 加固方案：API Key 只存不取
+## ✅ 已实施的加固方案：多密钥管理
 
 ### 核心思路
 
-**API Key 永远不返回给前端**，只在 Workers 后端使用。
+**API Key 永远不返回给前端**，只在 Workers 后端使用。支持管理多个密钥。
 
 ```
-当前流程（不安全）：
-前端 ←→ API Key ←→ KV 存储
+当前流程（安全）：
+保存密钥：
+前端 → 新密钥 → Workers → KV存储（api_key_1到api_key_5）
 
-加固后流程（安全）：
-前端 → API Key → KV 存储（保存）
-前端 ← "***" ← KV 存储（读取时隐藏）
+选择密钥：
+前端 → 密钥编号（1-5）→ Workers → 更新配置
+
+读取配置：
+前端 ← 密钥编号 + 状态 ← Workers
+（不返回真实密钥）
+
+AI对话：
 Workers 内部读取 KV 中的真实 Key 发送 AI 请求
 ```
 
-### 需要修改的文件
+### 已实施的代码改动
 
-#### 1. 修改 `functions/api/config.js`
+#### 1. `functions/api/config.js` - 多密钥管理
 
-GET 请求返回时隐藏 API Key：
+**GET /api/config** - 只返回密钥编号和状态：
 
 ```javascript
-// GET 请求：获取配置
-if (method === 'GET') {
-  try {
-    const storedConfig = await env.AI_CHAT_CONFIG.get('user_config');
-    const config = storedConfig ? JSON.parse(storedConfig) : DEFAULT_CONFIG;
+// 🔒 安全加固：不返回真实的 API Key
+return new Response(JSON.stringify({
+  endpoint: config.endpoint,
+  model: config.model,
+  selected_api_key: config.selected_api_key || '',
+  api_key_set: !!config.selected_api_key
+}), {
+  headers: {
+    'Content-Type': 'application/json',
+    'Access-Control-Allow-Origin': '*',
+  },
+});
+```
 
-    // 🔒 安全加固：不返回真实的 API Key
-    return new Response(JSON.stringify({
-      endpoint: config.endpoint,
-      model: config.model,
-      api_key: config.api_key ? '******已设置******' : ''  // 隐藏真实值
-    }), {
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-      },
-    });
-  } catch (error) {
-    // ...
-  }
+**GET /api/config/keys** - 返回所有密钥槽位状态：
+
+```javascript
+const keysStatus = {};
+for (let i = 1; i <= 5; i++) {
+  const key = await env.AI_CHAT_KEYS.get(`api_key_${i}`);
+  keysStatus[`key${i}`] = !!key;  // 只返回是否存在
 }
 ```
 
-#### 2. 修改 `functions/api/config.js` POST 逻辑
-
-保存时，如果前端传来的是占位符，保留原有的 Key：
+**POST /api/config** - 保存密钥到独立槽位：
 
 ```javascript
-// POST 请求：保存配置
-if (method === 'POST') {
-  try {
-    const data = await request.json();
-    const storedConfig = await env.AI_CHAT_CONFIG.get('user_config');
-    const currentConfig = storedConfig ? JSON.parse(storedConfig) : DEFAULT_CONFIG;
-
-    // 🔒 安全加固：如果传入的是占位符或空值，保留原有 Key
-    let newApiKey = currentConfig.api_key;
-    if (data.api_key && data.api_key !== '******已设置******') {
-      newApiKey = data.api_key;  // 只有传入新值才更新
-    }
-
-    const newConfig = {
-      endpoint: data.endpoint || currentConfig.endpoint,
-      model: data.model || currentConfig.model,
-      api_key: newApiKey,
-    };
-
-    await env.AI_CHAT_CONFIG.put('user_config', JSON.stringify(newConfig));
-
-    // 返回时也隐藏 Key
-    return new Response(
-      JSON.stringify({
-        status: 'success',
-        config: {
-          endpoint: newConfig.endpoint,
-          model: newConfig.model,
-          api_key: newConfig.api_key ? '******已设置******' : ''
-        }
-      }),
-      // ...
-    );
-  }
-}
-```
-
-#### 3. 修改 `index.html` 前端逻辑
-
-加载配置时，如果是占位符就不填充到输入框：
-
-```javascript
-async function loadConfig() {
-  // ...
-  const config = await response.json();
-  document.getElementById('endpoint').value = config.endpoint || '';
-  document.getElementById('model').value = config.model || '';
+// 如果提供了新的API密钥，保存到第一个可用位置
+if (data.new_api_key && data.new_api_key.trim() !== '') {
+  const newKey = data.new_api_key.trim();
   
-  // 🔒 如果是占位符，显示为空让用户知道已设置但不显示真实值
-  if (config.api_key === '******已设置******') {
-    document.getElementById('apiKey').placeholder = '已设置（重新输入将覆盖）';
-    document.getElementById('apiKey').value = '';
-  } else {
-    document.getElementById('apiKey').value = config.api_key || '';
+  // 找到第一个空位置
+  let targetSlot = '1';
+  for (let i = 1; i <= 5; i++) {
+    const existingKey = await env.AI_CHAT_KEYS.get(`api_key_${i}`);
+    if (!existingKey) {
+      targetSlot = i.toString();
+      break;
+    }
+  }
+  
+  // 保存新密钥到独立的KV键
+  await env.AI_CHAT_KEYS.put(`api_key_${targetSlot}`, newKey);
+  selectedKey = targetSlot;
+}
+```
+
+#### 2. `functions/api/chat.js` - 从KV读取密钥
+
+```javascript
+// 检查是否选择了API密钥
+if (!config.selected_api_key) {
+  return new Response(
+    JSON.stringify({ error: '请先选择或设置API密钥' }),
+    { status: 400, ... }
+  );
+}
+
+// 从KV中获取实际的API密钥
+const apiKey = await env.AI_CHAT_KEYS.get(`api_key_${config.selected_api_key}`);
+if (!apiKey) {
+  return new Response(
+    JSON.stringify({ error: 'API密钥不存在，请重新设置' }),
+    { status: 400, ... }
+  );
+}
+
+// 使用密钥发送请求
+const aiResponse = await fetch(`${config.endpoint}/chat/completions`, {
+  headers: {
+    'Authorization': `Bearer ${apiKey}`,
+  },
+  ...
+});
+```
+
+#### 3. `index.html` - 密钥选择界面
+
+```html
+<select id="apiKeySelect" onchange="handleApiKeySelectChange()">
+  <option value="">-- 选择API密钥 --</option>
+  <option value="1">API Key 1</option>
+  <option value="2">API Key 2</option>
+  <option value="3">API Key 3</option>
+  <option value="4">API Key 4</option>
+  <option value="5">API Key 5</option>
+  <option value="custom">重新输入新密钥</option>
+</select>
+<input type="password" id="apiKey" style="display: none;">
+```
+
+```javascript
+// 加载密钥状态，标记已设置的密钥
+async function loadApiKeyStatus() {
+  const response = await fetch('/api/config/keys', {
+    headers: { 'Authorization': `Bearer ${authToken}` }
+  });
+  const data = await response.json();
+  
+  // 更新选项显示
+  for (let i = 1; i <= 5; i++) {
+    const option = apiKeySelect.querySelector(`option[value="${i}"]`);
+    const isSet = data.keys_status[`key${i}`];
+    option.textContent = `API Key ${i}${isSet ? ' ✓' : ''}`;
   }
 }
 ```
@@ -142,13 +195,20 @@ async function loadConfig() {
 
 ## 加固后的效果
 
-| 攻击方式 | 加固前 | 加固后 |
-|---------|--------|--------|
-| F12 Network 查看 GET 响应 | 看到真实 Key | 看到 `******已设置******` |
-| F12 Network 查看 POST 请求 | 看到真实 Key | 只有首次设置时能看到 |
-| Console fetch 请求 | 返回真实 Key | 返回 `******已设置******` |
-| curl 调用 API | 返回真实 Key | 返回 `******已设置******` |
+| 攻击方式 | 旧版本 | 当前版本（已加固） |
+|---------|--------|------------------|
+| F12 Network 查看 GET 响应 | 看到真实 Key | 只看到密钥编号（如 `"selected_api_key": "1"`） |
+| F12 Network 查看 POST 请求 | 看到真实 Key | 只有首次设置时能看到，切换密钥时只传编号 |
+| Console fetch 请求 | 返回真实 Key | 返回密钥编号和状态标记 |
+| curl 调用 API | 返回真实 Key | 返回密钥编号和状态标记 |
 | 直接访问 KV 存储 | 需要 Cloudflare 账号权限 | 需要 Cloudflare 账号权限 |
+
+### 多密钥管理的额外安全优势
+
+1. **密钥隔离**：每个密钥独立存储在不同的KV键中
+2. **选择性使用**：可以快速切换密钥而无需重新输入
+3. **状态可见**：可以看到哪些槽位已设置密钥（✓标记）
+4. **最小暴露**：只有在添加新密钥时才需要传输真实密钥值
 
 ---
 
@@ -172,7 +232,7 @@ async function loadConfig() {
 ```javascript
 // 加密后存储
 const encrypted = await crypto.subtle.encrypt(...);
-await env.AI_CHAT_CONFIG.put('api_key_encrypted', encrypted);
+await env.AI_CHAT_KEYS.put('api_key_encrypted', encrypted);
 ```
 
 优点：即使 KV 数据泄露也无法直接使用

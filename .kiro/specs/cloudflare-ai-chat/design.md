@@ -37,7 +37,7 @@
                               ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                    Cloudflare KV                             │
-│  - AI_CHAT_CONFIG 命名空间                                   │
+│  - AI_CHAT_KEYS 命名空间                                   │
 │    ├── user_config    - 用户 API 配置                        │
 │    ├── users          - 用户凭证 {"root": "password"}        │
 │    └── sessions:{id}  - 登录会话 token                       │

@@ -4,7 +4,7 @@
 const DEFAULT_CONFIG = {
   endpoint: 'https://api.openai.com/v1',
   model: 'gpt-3.5-turbo',
-  api_key: ''
+  selected_api_key: ''  // 当前选择的API密钥编号�?-5�?
 };
 
 export async function onRequest(context) {
@@ -21,7 +21,7 @@ export async function onRequest(context) {
     });
   }
 
-  // 只允许 POST 请求
+  // 只允�?POST 请求
   if (request.method !== 'POST') {
     return new Response(
       JSON.stringify({ error: '不支持的请求方法' }),
@@ -37,13 +37,28 @@ export async function onRequest(context) {
 
   try {
     // 获取用户配置
-    const storedConfig = await env.AI_CHAT_CONFIG.get('user_config');
+    const storedConfig = await env.AI_CHAT_KEYS.get('user_config');
     const config = storedConfig ? JSON.parse(storedConfig) : DEFAULT_CONFIG;
 
-    // 检查 API 密钥
-    if (!config.api_key) {
+    // 检查是否选择了API密钥
+    if (!config.selected_api_key) {
       return new Response(
-        JSON.stringify({ error: '请先设置API密钥' }),
+        JSON.stringify({ error: '请先选择或设置API密钥' }),
+        {
+          status: 400,
+          headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+          },
+        }
+      );
+    }
+
+    // 从KV中获取实际的API密钥
+    const apiKey = await env.AI_CHAT_KEYS.get(`api_key_${config.selected_api_key}`);
+    if (!apiKey) {
+      return new Response(
+        JSON.stringify({ error: 'API密钥不存在，请重新设�? }),
         {
           status: 400,
           headers: {
@@ -71,12 +86,12 @@ export async function onRequest(context) {
       );
     }
 
-    // 转发请求到 AI API
+    // 转发请求�?AI API
     const aiResponse = await fetch(`${config.endpoint}/chat/completions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${config.api_key}`,
+        'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
         model: config.model,

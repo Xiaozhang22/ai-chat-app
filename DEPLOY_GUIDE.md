@@ -14,7 +14,7 @@
 2. 左侧菜单点击「Workers 和 Pages」
 3. 点击「KV」标签页
 4. 点击「创建命名空间」按钮
-5. 输入名称：`AI_CHAT_CONFIG`
+5. 输入名称：`AI_CHAT_KEYS`
 6. 点击「添加」
 7. **复制并保存命名空间 ID**（类似 `a1b2c3d4e5f6...` 的字符串）
 
@@ -27,7 +27,7 @@ name = "ai-chat-app"
 compatibility_date = "2025-01-01"
 
 [[kv_namespaces]]
-binding = "AI_CHAT_CONFIG"
+binding = "AI_CHAT_KEYS"
 id = "把这里替换成你的KV命名空间ID"
 ```
 
@@ -84,8 +84,8 @@ git push
 4. 找到「KV 命名空间绑定」部分
 5. 点击「添加绑定」
 6. 填写：
-   - **变量名称**：`AI_CHAT_CONFIG`（必须和代码中一致）
-   - **KV 命名空间**：选择你创建的 `AI_CHAT_CONFIG`
+   - **变量名称**：`AI_CHAT_KEYS`（必须和代码中一致）
+   - **KV 命名空间**：选择你创建的 `AI_CHAT_KEYS`
 7. 点击「保存」
 
 ### 第八步：重新部署
@@ -122,7 +122,7 @@ https://ai-chat-app.pages.dev
 
 ### 错误 2：KV 命名空间未绑定
 
-**症状**：登录或保存配置时报错 `AI_CHAT_CONFIG is not defined`
+**症状**：登录或保存配置时报错 `AI_CHAT_KEYS is not defined`
 
 **解决**：按照第七步绑定 KV 命名空间，然后重新部署。
 
@@ -156,6 +156,7 @@ https://ai-chat-app.pages.dev
         ├── login.js        ← /api/login
         ├── logout.js       ← /api/logout
         ├── config.js       ← /api/config
+        ├── keys.js         ← /api/keys/:id（密钥管理）
         └── chat.js         ← /api/chat
 ```
 
@@ -163,6 +164,18 @@ Pages 会自动：
 1. 将 `index.html` 作为静态网站托管
 2. 将 `functions/` 目录下的文件部署为 Workers 函数
 3. 路由 `/api/*` 请求到对应的函数
+
+## KV 存储结构
+
+系统在 Cloudflare KV 中存储以下数据：
+
+| Key | 说明 |
+|-----|------|
+| `user_config` | 用户配置（端点、模型、选择的密钥编号） |
+| `api_key_1` 到 `api_key_5` | 5个API密钥槽位 |
+| `sessions:{token}` | 用户登录会话（24小时过期） |
+
+所有API密钥都安全存储在Cloudflare KV中，前端永远不会接收到真实密钥值。
 
 ---
 

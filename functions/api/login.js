@@ -19,7 +19,7 @@ export async function onRequest(context) {
     });
   }
 
-  // 只允许 POST 请求
+  // 只允�?POST 请求
   if (request.method !== 'POST') {
     return new Response(
       JSON.stringify({ error: '不支持的请求方法' }),
@@ -51,10 +51,10 @@ export async function onRequest(context) {
       );
     }
 
-    // 检查凭证是否正确
+    // 检查凭证是否正�?
     if (USERS[username] !== password) {
       return new Response(
-        JSON.stringify({ error: '账号或密码错误' }),
+        JSON.stringify({ error: '账号或密码错�? }),
         {
           status: 401,
           headers: {
@@ -68,19 +68,19 @@ export async function onRequest(context) {
     // 生成 token
     const token = crypto.randomUUID();
     const now = new Date();
-    const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24小时后过期
+    const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24小时后过�?
 
-    // 存储 session 到 KV
+    // 存储 session �?KV
     const sessionData = {
       username: username,
       created_at: now.toISOString(),
       expires_at: expiresAt.toISOString(),
     };
 
-    await env.AI_CHAT_CONFIG.put(
+    await env.AI_CHAT_KEYS.put(
       `sessions:${token}`,
       JSON.stringify(sessionData),
-      { expirationTtl: 86400 } // 24小时后自动删除
+      { expirationTtl: 86400 } // 24小时后自动删�?
     );
 
     return new Response(
