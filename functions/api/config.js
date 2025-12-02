@@ -4,7 +4,7 @@
 const DEFAULT_CONFIG = {
   endpoint: 'https://api.openai.com/v1',
   model: 'gpt-3.5-turbo',
-  selected_api_key: ''  // 当前选择的API密钥编号�?-5�?
+  selected_api_key: ''
 };
 
 export async function onRequest(context) {
@@ -23,7 +23,7 @@ export async function onRequest(context) {
     });
   }
 
-  // GET /api/config/keys - 获取API密钥状�?
+  // GET /api/config/keys - 获取API密钥状态
   if (method === 'GET' && url.pathname === '/api/config/keys') {
     try {
       const keysStatus = {};
@@ -42,7 +42,7 @@ export async function onRequest(context) {
       });
     } catch (error) {
       return new Response(
-        JSON.stringify({ error: '获取密钥状态失�? ' + error.message }),
+        JSON.stringify({ error: '获取密钥状态失败: ' + error.message }),
         {
           status: 500,
           headers: {
@@ -54,13 +54,12 @@ export async function onRequest(context) {
     }
   }
 
-  // GET 请求：获取配�?
+  // GET 请求：获取配置
   if (method === 'GET') {
     try {
       const storedConfig = await env.AI_CHAT_KEYS.get('user_config');
       const config = storedConfig ? JSON.parse(storedConfig) : DEFAULT_CONFIG;
 
-      // 🔒 安全加固：不返回真实�?API Key
       return new Response(JSON.stringify({
         endpoint: config.endpoint,
         model: config.model,
@@ -86,7 +85,7 @@ export async function onRequest(context) {
     }
   }
 
-  // POST 请求：保存配�?
+  // POST 请求：保存配置
   if (method === 'POST') {
     try {
       const data = await request.json();
@@ -98,15 +97,15 @@ export async function onRequest(context) {
       // 处理API密钥
       let selectedKey = currentConfig.selected_api_key;
 
-      // 如果选择了预设的密钥�?-5�?
+      // 如果选择了预设的密钥（1-5）
       if (data.selected_api_key && data.selected_api_key >= '1' && data.selected_api_key <= '5') {
         selectedKey = data.selected_api_key;
       }
-      // 如果提供了新的API密钥，保存到下一个可用位置或更新现有位置
+      // 如果提供了新的API密钥，保存到下一个可用位置
       else if (data.new_api_key && data.new_api_key.trim() !== '') {
         const newKey = data.new_api_key.trim();
         
-        // 找到第一个空位置，如果都满了则使用位�?
+        // 找到第一个空位置，如果都满了则使用位置1
         let targetSlot = '1';
         for (let i = 1; i <= 5; i++) {
           const existingKey = await env.AI_CHAT_KEYS.get(`api_key_${i}`);
@@ -116,12 +115,12 @@ export async function onRequest(context) {
           }
         }
         
-        // 保存新密�?
+        // 保存新密钥
         await env.AI_CHAT_KEYS.put(`api_key_${targetSlot}`, newKey);
         selectedKey = targetSlot;
       }
 
-      // 合并新配�?
+      // 合并新配置
       const newConfig = {
         endpoint: data.endpoint || currentConfig.endpoint,
         model: data.model || currentConfig.model,
@@ -131,7 +130,6 @@ export async function onRequest(context) {
       // 写入 KV
       await env.AI_CHAT_KEYS.put('user_config', JSON.stringify(newConfig));
 
-      // 🔒 返回时不包含真实�?API Key
       return new Response(
         JSON.stringify({
           status: 'success',

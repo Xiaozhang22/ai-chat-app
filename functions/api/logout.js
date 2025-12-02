@@ -1,4 +1,4 @@
-// 退出登录接�?- POST /api/logout
+// 退出登录接口 - POST /api/logout
 
 export async function onRequest(context) {
   const { request, env } = context;
@@ -14,7 +14,7 @@ export async function onRequest(context) {
     });
   }
 
-  // 只允�?POST 请求
+  // 只允许 POST 请求
   if (request.method !== 'POST') {
     return new Response(
       JSON.stringify({ error: '不支持的请求方法' }),
@@ -29,16 +29,16 @@ export async function onRequest(context) {
   }
 
   try {
-    // �?Authorization header 提取 token
+    // 从 Authorization header 提取 token
     const authHeader = request.headers.get('Authorization');
     if (authHeader && authHeader.startsWith('Bearer ')) {
       const token = authHeader.substring(7);
-      // �?KV 删除 session
+      // 从 KV 删除 session
       await env.AI_CHAT_KEYS.delete(`sessions:${token}`);
     }
 
     return new Response(
-      JSON.stringify({ status: 'success', message: '已退出登�? }),
+      JSON.stringify({ status: 'success', message: '已退出登录' }),
       {
         headers: {
           'Content-Type': 'application/json',
@@ -48,7 +48,7 @@ export async function onRequest(context) {
     );
   } catch (error) {
     return new Response(
-      JSON.stringify({ error: '退出登录失�? ' + error.message }),
+      JSON.stringify({ error: '退出登录失败: ' + error.message }),
       {
         status: 500,
         headers: {

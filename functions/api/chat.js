@@ -4,7 +4,7 @@
 const DEFAULT_CONFIG = {
   endpoint: 'https://api.openai.com/v1',
   model: 'gpt-3.5-turbo',
-  selected_api_key: ''  // 当前选择的API密钥编号�?-5�?
+  selected_api_key: ''
 };
 
 export async function onRequest(context) {
@@ -21,7 +21,7 @@ export async function onRequest(context) {
     });
   }
 
-  // 只允�?POST 请求
+  // 只允许 POST 请求
   if (request.method !== 'POST') {
     return new Response(
       JSON.stringify({ error: '不支持的请求方法' }),
@@ -58,7 +58,7 @@ export async function onRequest(context) {
     const apiKey = await env.AI_CHAT_KEYS.get(`api_key_${config.selected_api_key}`);
     if (!apiKey) {
       return new Response(
-        JSON.stringify({ error: 'API密钥不存在，请重新设�? }),
+        JSON.stringify({ error: 'API密钥不存在，请重新设置' }),
         {
           status: 400,
           headers: {
@@ -86,7 +86,7 @@ export async function onRequest(context) {
       );
     }
 
-    // 转发请求�?AI API
+    // 转发请求到 AI API
     const aiResponse = await fetch(`${config.endpoint}/chat/completions`, {
       method: 'POST',
       headers: {

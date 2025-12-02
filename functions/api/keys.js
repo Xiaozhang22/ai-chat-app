@@ -1,4 +1,4 @@
-// API密钥管理接口 - GET/DELETE /api/keys/:id
+// API密钥管理接口 - DELETE /api/keys/:id
 
 export async function onRequest(context) {
   const { request, env } = context;
@@ -10,13 +10,13 @@ export async function onRequest(context) {
     return new Response(null, {
       headers: {
         'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, DELETE, OPTIONS',
+        'Access-Control-Allow-Methods': 'DELETE, OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type, Authorization',
       },
     });
   }
 
-  // 解析密钥ID�?-5�?
+  // 解析密钥ID（1-5）
   const pathParts = url.pathname.split('/');
   const keyId = pathParts[pathParts.length - 1];
 
