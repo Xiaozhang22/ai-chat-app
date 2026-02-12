@@ -103,11 +103,25 @@
       <h3>⚙️ 配置设置</h3>
       <div class="config-row">
         <label>API端点:</label>
-        <input type="text" id="endpoint" placeholder="https://api.openai.com/v1" value="https://api.openai.com/v1">
+        <select id="endpointSelect" onchange="handleEndpointSelectChange()">
+          <option value="">-- 选择API端点 --</option>
+          <option value="gemini">Gemini (gemini.zx1993.top)</option>
+          <option value="anyrouter">AnyRouter (Anthropic格式)</option>
+          <option value="custom">重新输入</option>
+        </select>
+        <input type="text" id="endpoint" placeholder="输入自定义API端点" style="display: none;">
       </div>
       <div class="config-row">
         <label>模型:</label>
         <input type="text" id="model" placeholder="gpt-3.5-turbo" value="gpt-3.5-turbo">
+        <button onclick="showModels()" id="showModelsBtn">查看模型</button>
+      </div>
+      <div id="modelsPanel" style="display: none; margin-top: 0.5rem; padding: 0.5rem; background: #f8f9fa; border-radius: 6px; border: 1px solid #e0e0e0;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+          <span style="font-weight: 500; font-size: 13px; color: #555;">可用模型列表</span>
+          <button onclick="closeModels()" style="background: none; border: none; cursor: pointer; font-size: 16px; color: #999;">✕</button>
+        </div>
+        <div id="modelsList" style="display: flex; flex-wrap: wrap; gap: 0.4rem;"></div>
       </div>
       <div class="config-row">
         <label>API密钥:</label>
@@ -233,9 +247,29 @@
       border-radius: 4px;
       cursor: pointer;
       font-size: 14px;
+      white-space: nowrap;
     }
     .config-row button:hover {
       background: #2980b9;
+    }
+    .config-row button:disabled {
+      background: #bdc3c7;
+      cursor: not-allowed;
+    }
+    .model-tag {
+      padding: 0.3rem 0.7rem;
+      background: #e8f4fd;
+      border: 1px solid #b8daff;
+      border-radius: 16px;
+      cursor: pointer;
+      font-size: 13px;
+      color: #2c3e50;
+      transition: background 0.2s;
+    }
+    .model-tag:hover {
+      background: #3498db;
+      color: white;
+      border-color: #3498db;
     }
     .chat-container {
       flex: 1;
@@ -440,8 +474,26 @@
         }
 
         const config = await response.json();
-        document.getElementById('endpoint').value = config.endpoint || '';
         document.getElementById('model').value = config.model || '';
+        
+        // 加载端点选择状态
+        const endpointSelect = document.getElementById('endpointSelect');
+        const endpointInput = document.getElementById('endpoint');
+        
+        if (config.selected_endpoint && config.selected_endpoint !== 'custom') {
+          endpointSelect.value = config.selected_endpoint;
+          endpointInput.style.display = 'none';
+        } else if (config.selected_endpoint === 'custom') {
+          endpointSelect.value = 'custom';
+          endpointInput.style.display = 'block';
+          endpointInput.value = config.endpoint || '';
+        } else {
+          endpointSelect.value = '';
+          endpointInput.style.display = 'none';
+        }
+        
+        // 更新模型按钮状态
+        updateModelsButtonState();
         
         // 加载API密钥选择状态
         const apiKeySelect = document.getElementById('apiKeySelect');
@@ -492,6 +544,77 @@
       }
     }
 
+    // 处理端点选择变化
+    function handleEndpointSelectChange() {
+      const endpointSelect = document.getElementById('endpointSelect');
+      const endpointInput = document.getElementById('endpoint');
+      
+      if (endpointSelect.value === 'custom') {
+        endpointInput.style.display = 'block';
+        endpointInput.value = '';
+        endpointInput.focus();
+      } else {
+        endpointInput.style.display = 'none';
+        endpointInput.value = '';
+      }
+      
+      updateModelsButtonState();
+      closeModels();
+    }
+
+    // 更新模型按钮状态
+    function updateModelsButtonState() {
+      const endpointSelect = document.getElementById('endpointSelect');
+      const btn = document.getElementById('showModelsBtn');
+      const val = endpointSelect.value;
+      btn.disabled = !val || val === 'custom';
+    }
+
+    // 显示模型列表
+    async function showModels() {
+      const endpointSelect = document.getElementById('endpointSelect');
+      const endpointId = endpointSelect.value;
+      
+      if (!endpointId || endpointId === 'custom') return;
+
+      const panel = document.getElementById('modelsPanel');
+      const list = document.getElementById('modelsList');
+      list.innerHTML = '<span style="color: #999; font-size: 13px;">加载中...</span>';
+      panel.style.display = 'block';
+
+      try {
+        const response = await fetch(`/api/config/models?endpoint=${endpointId}`, {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+
+        if (response.status === 401) { logout(); return; }
+
+        const data = await response.json();
+        const models = data.models || [];
+
+        if (models.length === 0) {
+          list.innerHTML = '<span style="color: #999; font-size: 13px;">暂无预设模型</span>';
+        } else {
+          list.innerHTML = models.map(m =>
+            `<span class="model-tag" onclick="selectModel('${m}')">${m}</span>`
+          ).join('');
+        }
+      } catch (error) {
+        list.innerHTML = '<span style="color: #e74c3c; font-size: 13px;">加载失败</span>';
+      }
+    }
+
+    // 选择模型
+    function selectModel(modelName) {
+      document.getElementById('model').value = modelName;
+      closeModels();
+    }
+
+    // 关闭模型面板
+    function closeModels() {
+      document.getElementById('modelsPanel').style.display = 'none';
+    }
+
     // 处理API密钥选择变化
     function handleApiKeySelectChange() {
       const apiKeySelect = document.getElementById('apiKeySelect');
@@ -510,12 +633,19 @@
 
     // 保存配置
     async function saveConfig() {
-      const endpoint = document.getElementById('endpoint').value;
+      const endpointSelect = document.getElementById('endpointSelect');
+      const endpointInput = document.getElementById('endpoint');
       const model = document.getElementById('model').value;
       const apiKeySelect = document.getElementById('apiKeySelect');
       const apiKeyInput = document.getElementById('apiKey');
       
+      const selectedEndpoint = endpointSelect.value;
       const selectedKey = apiKeySelect.value;
+      
+      if (!selectedEndpoint) {
+        addMessage('系统', '请选择API端点', 'assistant');
+        return;
+      }
       
       if (!selectedKey) {
         addMessage('系统', '请选择或输入API密钥', 'assistant');
@@ -523,16 +653,24 @@
       }
 
       const configData = {
-        endpoint: endpoint,
+        selected_endpoint: selectedEndpoint,
         model: model
       };
 
-      // 如果选择了预设的密钥（1-5）
+      // 自定义端点需要传入 URL
+      if (selectedEndpoint === 'custom') {
+        const customEndpoint = endpointInput.value.trim();
+        if (!customEndpoint) {
+          addMessage('系统', '请输入自定义API端点地址', 'assistant');
+          return;
+        }
+        configData.endpoint = customEndpoint;
+      }
+
+      // 处理 API 密钥
       if (selectedKey >= '1' && selectedKey <= '5') {
         configData.selected_api_key = selectedKey;
-      } 
-      // 如果选择了"重新输入"
-      else if (selectedKey === 'custom') {
+      } else if (selectedKey === 'custom') {
         const newApiKey = apiKeyInput.value.trim();
         if (!newApiKey) {
           addMessage('系统', '请输入新的API密钥', 'assistant');
@@ -559,7 +697,6 @@
         const result = await response.json();
         if (response.ok) {
           addMessage('系统', '配置已保存！', 'assistant');
-          // 重新加载配置以更新状态
           loadConfig();
         } else {
           addMessage('系统', '配置保存失败: ' + result.error, 'assistant');
