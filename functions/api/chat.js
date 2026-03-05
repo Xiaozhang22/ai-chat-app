@@ -37,7 +37,7 @@ const ANTHROPIC_HEADERS = {
   'anthropic-beta': 'interleaved-thinking-2025-05-14,context-management-2025-06-27,prompt-caching-scope-2026-01-05',
   'accept-language': '*',
   'sec-fetch-mode': 'cors',
-  'Accept': 'application/json',
+  'Accept': 'text/event-stream',
 };
 
 // Claude Code system prompt（AnyRouter 验证需要）
@@ -53,8 +53,8 @@ const CLAUDE_CODE_SYSTEM = [
   }
 ];
 
-// 构造 OpenAI 兼容请求
-function buildOpenAIRequest(endpoint, model, apiKey, userMessage) {
+// 构造 OpenAI 兼容请求（流式）
+function buildOpenAIRequest(endpoint, model, apiKey, messages) {
   return {
     url: `${endpoint}/chat/completions`,
     headers: {
@@ -63,15 +63,14 @@ function buildOpenAIRequest(endpoint, model, apiKey, userMessage) {
     },
     body: JSON.stringify({
       model: model,
-      messages: [{ role: 'user', content: userMessage }],
-      stream: false,
+      messages: messages,
+      stream: true,
     }),
   };
 }
 
-// 构造 Anthropic 请求（完整伪装 Claude Code 请求）
-function buildAnthropicRequest(endpoint, model, apiKey, userMessage) {
-  // 生成伪装的 user_id（参考 anyrouter-bridge.py 格式）
+// 构造 Anthropic 请求（流式）
+function buildAnthropicRequest(endpoint, model, apiKey, messages) {
   const sessionId = crypto.randomUUID();
   const fakeUserHash = 'webchat-bridge-user-hash';
 
@@ -85,28 +84,114 @@ function buildAnthropicRequest(endpoint, model, apiKey, userMessage) {
     body: JSON.stringify({
       model: model,
       max_tokens: 4096,
-      messages: [{ role: 'user', content: userMessage }],
+      messages: messages,
       system: CLAUDE_CODE_SYSTEM,
       metadata: {
         user_id: `user_${fakeUserHash}_account__session_${sessionId}`
       },
-      stream: false,
+      stream: true,
     }),
   };
 }
 
-// 解析 OpenAI 响应
-function parseOpenAIResponse(result) {
-  return result.choices?.[0]?.message?.content || '无法解析响应';
+// 将 OpenAI SSE 流转换为统一的文本 SSE 流
+function transformOpenAIStream(response) {
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  return new ReadableStream({
+    async pull(controller) {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) {
+          controller.enqueue(new TextEncoder().encode('data: [DONE]\n\n'));
+          controller.close();
+          return;
+        }
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed || !trimmed.startsWith('data: ')) continue;
+          const data = trimmed.slice(6);
+          if (data === '[DONE]') {
+            controller.enqueue(new TextEncoder().encode('data: [DONE]\n\n'));
+            controller.close();
+            return;
+          }
+          try {
+            const parsed = JSON.parse(data);
+            const content = parsed.choices?.[0]?.delta?.content;
+            if (content) {
+              controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ text: content })}\n\n`));
+            }
+          } catch (e) {
+            // skip unparseable lines
+          }
+        }
+      }
+    },
+    cancel() {
+      reader.cancel();
+    }
+  });
 }
 
-// 解析 Anthropic 响应
-function parseAnthropicResponse(result) {
-  if (result.content && Array.isArray(result.content)) {
-    const textBlock = result.content.find(b => b.type === 'text');
-    if (textBlock) return textBlock.text;
-  }
-  return '无法解析响应';
+// 将 Anthropic SSE 流转换为统一的文本 SSE 流
+function transformAnthropicStream(response) {
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  return new ReadableStream({
+    async pull(controller) {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) {
+          controller.enqueue(new TextEncoder().encode('data: [DONE]\n\n'));
+          controller.close();
+          return;
+        }
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed || !trimmed.startsWith('data: ')) continue;
+          const data = trimmed.slice(6);
+          if (data === '[DONE]') {
+            controller.enqueue(new TextEncoder().encode('data: [DONE]\n\n'));
+            controller.close();
+            return;
+          }
+          try {
+            const parsed = JSON.parse(data);
+            if (parsed.type === 'content_block_delta' && parsed.delta?.type === 'text_delta') {
+              const text = parsed.delta.text;
+              if (text) {
+                controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ text })}\n\n`));
+              }
+            } else if (parsed.type === 'message_stop') {
+              controller.enqueue(new TextEncoder().encode('data: [DONE]\n\n'));
+              controller.close();
+              return;
+            }
+          } catch (e) {
+            // skip unparseable lines
+          }
+        }
+      }
+    },
+    cancel() {
+      reader.cancel();
+    }
+  });
 }
 
 export async function onRequest(context) {
@@ -171,11 +256,11 @@ export async function onRequest(context) {
       );
     }
 
-    // 解析用户消息
+    // 解析请求体
     const data = await request.json();
-    const userMessage = data.message?.trim();
+    const messages = data.messages;
 
-    if (!userMessage) {
+    if (!messages || !Array.isArray(messages) || messages.length === 0) {
       return new Response(
         JSON.stringify({ error: '消息不能为空' }),
         {
@@ -195,9 +280,9 @@ export async function onRequest(context) {
 
     let reqConfig;
     if (endpointType === 'anthropic') {
-      reqConfig = buildAnthropicRequest(endpoint, model, apiKey, userMessage);
+      reqConfig = buildAnthropicRequest(endpoint, model, apiKey, messages);
     } else {
-      reqConfig = buildOpenAIRequest(endpoint, model, apiKey, userMessage);
+      reqConfig = buildOpenAIRequest(endpoint, model, apiKey, messages);
     }
 
     // 发送请求到 AI API
@@ -209,27 +294,21 @@ export async function onRequest(context) {
 
     // 处理响应
     if (aiResponse.ok) {
-      const result = await aiResponse.json();
-      let assistantMessage;
-
+      let stream;
       if (endpointType === 'anthropic') {
-        assistantMessage = parseAnthropicResponse(result);
+        stream = transformAnthropicStream(aiResponse);
       } else {
-        assistantMessage = parseOpenAIResponse(result);
+        stream = transformOpenAIStream(aiResponse);
       }
 
-      return new Response(
-        JSON.stringify({
-          response: assistantMessage,
-          timestamp: new Date().toISOString(),
-        }),
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*',
-          },
-        }
-      );
+      return new Response(stream, {
+        headers: {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          'Connection': 'keep-alive',
+          'Access-Control-Allow-Origin': '*',
+        },
+      });
     } else {
       const errorText = await aiResponse.text();
       return new Response(

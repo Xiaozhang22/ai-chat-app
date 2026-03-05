@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>轻量AI对话界面</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.1/marked.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
   <style>
     * {
       margin: 0;
@@ -66,97 +69,6 @@
       outline: none;
       border-color: #667eea;
     }
-</style>
-</head>
-<body>
-  <!-- 登录页面 -->
-  <div class="login-container" id="loginPage">
-    <div class="login-box">
-      <h1>🤖 AI 对话</h1>
-      <p>请登录以继续使用</p>
-      <div class="form-group">
-        <label>账号</label>
-        <input type="text" id="loginUsername" placeholder="请输入账号">
-      </div>
-      <div class="form-group">
-        <label>密码</label>
-        <input type="password" id="loginPassword" placeholder="请输入密码" onkeypress="handleLoginKeyPress(event)">
-      </div>
-      <div id="loginError" class="error" style="display: none;"></div>
-      <button class="login-btn" onclick="login()">登 录</button>
-    </div>
-  </div>
-
-  <!-- 主页面（对话界面） -->
-  <div id="mainPage" style="display: none; height: 100vh; flex-direction: column;">
-    <div class="header">
-      <div class="header-content">
-        <div>
-          <h1>🤖 轻量AI对话界面</h1>
-          <div>简洁的AI对话界面，支持自定义配置</div>
-        </div>
-        <button class="logout-btn" onclick="logout()">退出登录</button>
-      </div>
-    </div>
-
-    <div class="config-panel">
-      <h3>⚙️ 配置设置</h3>
-      <div class="config-row">
-        <label>API端点:</label>
-        <select id="endpointSelect" onchange="handleEndpointSelectChange()">
-          <option value="">-- 选择API端点 --</option>
-          <option value="gemini">Gemini (gemini.zx1993.top)</option>
-          <option value="anyrouter">AnyRouter (Anthropic格式)</option>
-          <option value="custom">重新输入</option>
-        </select>
-        <input type="text" id="endpoint" placeholder="输入自定义API端点" style="display: none;">
-      </div>
-      <div class="config-row">
-        <label>模型:</label>
-        <input type="text" id="model" placeholder="gpt-3.5-turbo" value="gpt-3.5-turbo">
-        <button onclick="showModels()" id="showModelsBtn">查看模型</button>
-      </div>
-      <div id="modelsPanel" style="display: none; margin-top: 0.5rem; padding: 0.5rem; background: #f8f9fa; border-radius: 6px; border: 1px solid #e0e0e0;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-          <span style="font-weight: 500; font-size: 13px; color: #555;">可用模型列表</span>
-          <button onclick="closeModels()" style="background: none; border: none; cursor: pointer; font-size: 16px; color: #999;">✕</button>
-        </div>
-        <div id="modelsList" style="display: flex; flex-wrap: wrap; gap: 0.4rem;"></div>
-      </div>
-      <div class="config-row">
-        <label>API密钥:</label>
-        <select id="apiKeySelect" onchange="handleApiKeySelectChange()">
-          <option value="">-- 选择API密钥 --</option>
-          <option value="1">API Key 1</option>
-          <option value="2">API Key 2</option>
-          <option value="3">API Key 3</option>
-          <option value="4">API Key 4</option>
-          <option value="5">API Key 5</option>
-          <option value="custom">重新输入新密钥</option>
-        </select>
-        <input type="password" id="apiKey" placeholder="输入你的API密钥" style="display: none;">
-        <button onclick="saveConfig()">保存配置</button>
-      </div>
-    </div>
-
-    <div class="chat-container">
-      <div class="chat-messages" id="chatMessages">
-        <div class="message assistant">
-          <div class="message-bubble">你好！我是AI助手。请在上方配置你的API设置，然后我们就可以开始对话了。</div>
-        </div>
-      </div>
-      <div class="chat-input">
-        <div class="input-row">
-          <input type="text" id="userInput" placeholder="输入你的消息..." onkeypress="handleKeyPress(event)">
-          <button onclick="sendMessage()" id="sendButton">发送</button>
-        </div>
-      </div>
-    </div>
-  </div>
-</body>
-</html>
-
-<style>
     .login-btn {
       width: 100%;
       padding: 0.9rem;
@@ -183,7 +95,7 @@
     .header {
       background: #2c3e50;
       color: white;
-      padding: 1rem;
+      padding: 0.8rem 1rem;
       box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
     .header-content {
@@ -192,37 +104,57 @@
       align-items: center;
     }
     .header h1 {
-      font-size: 1.5rem;
-      margin-bottom: 0.5rem;
+      font-size: 1.2rem;
+      margin-bottom: 0;
     }
-    .logout-btn {
-      padding: 0.5rem 1rem;
-      background: #e74c3c;
+    .header-actions {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
+    .header-btn {
+      padding: 0.4rem 0.8rem;
       color: white;
-      border: none;
+      border: 1px solid rgba(255,255,255,0.3);
       border-radius: 4px;
       cursor: pointer;
-      font-size: 14px;
+      font-size: 13px;
+      background: transparent;
+      transition: background 0.2s;
     }
-    .logout-btn:hover {
-      background: #c0392b;
+    .header-btn:hover {
+      background: rgba(255,255,255,0.1);
+    }
+    .header-btn.danger {
+      border-color: #e74c3c;
+      color: #ff6b6b;
+    }
+    .header-btn.danger:hover {
+      background: #e74c3c;
+      color: white;
     }
     .config-panel {
       background: white;
+      margin: 0;
+      border-bottom: 1px solid #e0e0e0;
+      overflow: hidden;
+      max-height: 0;
+      transition: max-height 0.3s ease, padding 0.3s ease;
+    }
+    .config-panel.open {
+      max-height: 400px;
       padding: 1rem;
-      margin: 1rem;
-      border-radius: 8px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
     .config-row {
       display: flex;
-      gap: 1rem;
+      gap: 0.8rem;
       margin-bottom: 0.5rem;
       align-items: center;
     }
     .config-row label {
-      min-width: 80px;
+      min-width: 70px;
       font-weight: 500;
+      font-size: 14px;
     }
     .config-row input, .config-row select {
       flex: 1;
@@ -235,7 +167,7 @@
       cursor: pointer;
       background-color: white;
     }
-    .config-row select:focus {
+    .config-row select:focus, .config-row input:focus {
       outline: none;
       border-color: #3498db;
     }
@@ -275,10 +207,6 @@
       flex: 1;
       display: flex;
       flex-direction: column;
-      margin: 0 1rem 1rem 1rem;
-      background: white;
-      border-radius: 8px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
       overflow: hidden;
     }
     .chat-messages {
@@ -299,19 +227,74 @@
       align-items: flex-start;
     }
     .message-bubble {
-      max-width: 70%;
+      max-width: 80%;
       padding: 0.75rem 1rem;
       border-radius: 18px;
       word-wrap: break-word;
-      white-space: pre-wrap;
+      line-height: 1.6;
     }
     .message.user .message-bubble {
       background: #3498db;
       color: white;
+      white-space: pre-wrap;
     }
     .message.assistant .message-bubble {
       background: #ecf0f1;
       color: #2c3e50;
+    }
+    /* Markdown 内容样式 */
+    .message.assistant .message-bubble p {
+      margin: 0.4em 0;
+    }
+    .message.assistant .message-bubble p:first-child {
+      margin-top: 0;
+    }
+    .message.assistant .message-bubble p:last-child {
+      margin-bottom: 0;
+    }
+    .message.assistant .message-bubble pre {
+      background: #1e1e1e;
+      color: #d4d4d4;
+      padding: 0.8rem;
+      border-radius: 8px;
+      overflow-x: auto;
+      margin: 0.5rem 0;
+      font-size: 13px;
+    }
+    .message.assistant .message-bubble code {
+      font-family: 'SF Mono', Monaco, 'Cascadia Code', Consolas, monospace;
+      font-size: 0.9em;
+    }
+    .message.assistant .message-bubble :not(pre) > code {
+      background: #e8e8e8;
+      padding: 0.15em 0.4em;
+      border-radius: 4px;
+      font-size: 0.85em;
+    }
+    .message.assistant .message-bubble ul,
+    .message.assistant .message-bubble ol {
+      padding-left: 1.5em;
+      margin: 0.4em 0;
+    }
+    .message.assistant .message-bubble blockquote {
+      border-left: 3px solid #3498db;
+      padding-left: 0.8em;
+      margin: 0.4em 0;
+      color: #555;
+    }
+    .message.assistant .message-bubble table {
+      border-collapse: collapse;
+      margin: 0.5em 0;
+      width: 100%;
+    }
+    .message.assistant .message-bubble th,
+    .message.assistant .message-bubble td {
+      border: 1px solid #ddd;
+      padding: 0.4em 0.6em;
+      text-align: left;
+    }
+    .message.assistant .message-bubble th {
+      background: #f0f0f0;
     }
     .message-time {
       font-size: 0.75rem;
@@ -319,7 +302,7 @@
       margin-top: 0.25rem;
     }
     .chat-input {
-      padding: 1rem;
+      padding: 0.8rem 1rem;
       background: white;
       border-top: 1px solid #ecf0f1;
     }
@@ -362,11 +345,156 @@
       margin-bottom: 1rem;
       font-size: 14px;
     }
-  </style>
+    /* 流式输出光标 */
+    .streaming-cursor::after {
+      content: '';
+      display: inline-block;
+      width: 2px;
+      height: 1em;
+      background: #2c3e50;
+      margin-left: 2px;
+      animation: blink 0.8s infinite;
+      vertical-align: text-bottom;
+    }
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
 
-<script>
+    /* 移动端适配 */
+    @media (max-width: 768px) {
+      .login-box {
+        margin: 1rem;
+        padding: 1.5rem;
+      }
+      .config-row {
+        flex-direction: column;
+        gap: 0.4rem;
+      }
+      .config-row label {
+        min-width: unset;
+      }
+      .config-row input, .config-row select {
+        width: 100%;
+      }
+      .config-row button {
+        width: 100%;
+        padding: 0.6rem;
+      }
+      .message-bubble {
+        max-width: 90%;
+      }
+      .header h1 {
+        font-size: 1rem;
+      }
+      .input-row button {
+        padding: 0.75rem 1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- 登录页面 -->
+  <div class="login-container" id="loginPage">
+    <div class="login-box">
+      <h1>AI 对话</h1>
+      <p>请登录以继续使用</p>
+      <div class="form-group">
+        <label>账号</label>
+        <input type="text" id="loginUsername" placeholder="请输入账号">
+      </div>
+      <div class="form-group">
+        <label>密码</label>
+        <input type="password" id="loginPassword" placeholder="请输入密码" onkeypress="handleLoginKeyPress(event)">
+      </div>
+      <div id="loginError" class="error" style="display: none;"></div>
+      <button class="login-btn" onclick="login()">登 录</button>
+    </div>
+  </div>
+
+  <!-- 主页面（对话界面） -->
+  <div id="mainPage" style="display: none; height: 100vh; flex-direction: column;">
+    <div class="header">
+      <div class="header-content">
+        <h1>AI 对话</h1>
+        <div class="header-actions">
+          <button class="header-btn" onclick="toggleConfig()" id="configToggleBtn">设置</button>
+          <button class="header-btn" onclick="clearConversation()">清除对话</button>
+          <button class="header-btn danger" onclick="logout()">退出</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="config-panel" id="configPanel">
+      <div class="config-row">
+        <label>API端点:</label>
+        <select id="endpointSelect" onchange="handleEndpointSelectChange()">
+          <option value="">-- 选择API端点 --</option>
+          <option value="gemini">Gemini (gemini.zx1993.top)</option>
+          <option value="anyrouter">AnyRouter (Anthropic格式)</option>
+          <option value="custom">重新输入</option>
+        </select>
+        <input type="text" id="endpoint" placeholder="输入自定义API端点" style="display: none;">
+      </div>
+      <div class="config-row">
+        <label>模型:</label>
+        <input type="text" id="model" placeholder="gpt-3.5-turbo" value="gpt-3.5-turbo">
+        <button onclick="showModels()" id="showModelsBtn">查看模型</button>
+      </div>
+      <div id="modelsPanel" style="display: none; margin-top: 0.5rem; padding: 0.5rem; background: #f8f9fa; border-radius: 6px; border: 1px solid #e0e0e0;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+          <span style="font-weight: 500; font-size: 13px; color: #555;">可用模型列表</span>
+          <button onclick="closeModels()" style="background: none; border: none; cursor: pointer; font-size: 16px; color: #999;">&#10005;</button>
+        </div>
+        <div id="modelsList" style="display: flex; flex-wrap: wrap; gap: 0.4rem;"></div>
+      </div>
+      <div class="config-row">
+        <label>API密钥:</label>
+        <select id="apiKeySelect" onchange="handleApiKeySelectChange()">
+          <option value="">-- 选择API密钥 --</option>
+          <option value="1">API Key 1</option>
+          <option value="2">API Key 2</option>
+          <option value="3">API Key 3</option>
+          <option value="4">API Key 4</option>
+          <option value="5">API Key 5</option>
+          <option value="custom">重新输入新密钥</option>
+        </select>
+        <input type="password" id="apiKey" placeholder="输入你的API密钥" style="display: none;">
+        <button onclick="saveConfig()">保存配置</button>
+      </div>
+    </div>
+
+    <div class="chat-container">
+      <div class="chat-messages" id="chatMessages">
+        <div class="message assistant">
+          <div class="message-bubble">你好！请先在顶部"设置"中配置API，然后开始对话。</div>
+        </div>
+      </div>
+      <div class="chat-input">
+        <div class="input-row">
+          <input type="text" id="userInput" placeholder="输入你的消息..." onkeypress="handleKeyPress(event)">
+          <button onclick="sendMessage()" id="sendButton">发送</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 配置 marked
+    marked.setOptions({
+      highlight: function(code, lang) {
+        if (lang && hljs.getLanguage(lang)) {
+          return hljs.highlight(code, { language: lang }).value;
+        }
+        return hljs.highlightAuto(code).value;
+      },
+      breaks: true,
+    });
+
     // 全局变量
     let authToken = localStorage.getItem('auth_token');
+    let conversationHistory = [];
+    let isStreaming = false;
 
     // 页面加载时检查登录状态
     document.addEventListener('DOMContentLoaded', function() {
@@ -383,16 +511,28 @@
       }
     }
 
-    // 显示登录页面
     function showLoginPage() {
       document.getElementById('loginPage').style.display = 'flex';
       document.getElementById('mainPage').style.display = 'none';
     }
 
-    // 显示对话页面
     function showChatPage() {
       document.getElementById('loginPage').style.display = 'none';
       document.getElementById('mainPage').style.display = 'flex';
+    }
+
+    // 切换配置面板
+    function toggleConfig() {
+      const panel = document.getElementById('configPanel');
+      panel.classList.toggle('open');
+    }
+
+    // 清除对话
+    function clearConversation() {
+      conversationHistory = [];
+      const chatMessages = document.getElementById('chatMessages');
+      chatMessages.innerHTML = '';
+      addMessage('系统', '对话已清除。', 'assistant', false);
     }
 
     // 登录
@@ -410,9 +550,7 @@
       try {
         const response = await fetch('/api/login', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username, password })
         });
 
@@ -434,52 +572,40 @@
       }
     }
 
-    // 退出登录
     async function logout() {
       try {
         await fetch('/api/logout', {
           method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${authToken}`
-          }
+          headers: { 'Authorization': `Bearer ${authToken}` }
         });
       } catch (error) {
         console.error('退出登录失败:', error);
       }
-
       authToken = null;
       localStorage.removeItem('auth_token');
+      conversationHistory = [];
       showLoginPage();
     }
 
-    // 处理登录回车键
     function handleLoginKeyPress(event) {
-      if (event.key === 'Enter') {
-        login();
-      }
+      if (event.key === 'Enter') login();
     }
 
     // 加载配置
     async function loadConfig() {
       try {
         const response = await fetch('/api/config', {
-          headers: {
-            'Authorization': `Bearer ${authToken}`
-          }
+          headers: { 'Authorization': `Bearer ${authToken}` }
         });
 
-        if (response.status === 401) {
-          logout();
-          return;
-        }
+        if (response.status === 401) { logout(); return; }
 
         const config = await response.json();
         document.getElementById('model').value = config.model || '';
-        
-        // 加载端点选择状态
+
         const endpointSelect = document.getElementById('endpointSelect');
         const endpointInput = document.getElementById('endpoint');
-        
+
         if (config.selected_endpoint && config.selected_endpoint !== 'custom') {
           endpointSelect.value = config.selected_endpoint;
           endpointInput.style.display = 'none';
@@ -491,14 +617,12 @@
           endpointSelect.value = '';
           endpointInput.style.display = 'none';
         }
-        
-        // 更新模型按钮状态
+
         updateModelsButtonState();
-        
-        // 加载API密钥选择状态
+
         const apiKeySelect = document.getElementById('apiKeySelect');
         const apiKeyInput = document.getElementById('apiKey');
-        
+
         if (config.selected_api_key) {
           apiKeySelect.value = config.selected_api_key;
           apiKeyInput.style.display = 'none';
@@ -509,33 +633,28 @@
           apiKeySelect.value = '';
           apiKeyInput.style.display = 'none';
         }
-        
-        // 加载可用的API密钥列表状态
+
         loadApiKeyStatus();
       } catch (error) {
         console.error('加载配置失败:', error);
       }
     }
 
-    // 加载API密钥状态（显示哪些已设置）
     async function loadApiKeyStatus() {
       try {
         const response = await fetch('/api/config/keys', {
-          headers: {
-            'Authorization': `Bearer ${authToken}`
-          }
+          headers: { 'Authorization': `Bearer ${authToken}` }
         });
 
         if (response.ok) {
           const data = await response.json();
           const apiKeySelect = document.getElementById('apiKeySelect');
-          
-          // 更新选项显示，标记已设置的密钥
+
           for (let i = 1; i <= 5; i++) {
             const option = apiKeySelect.querySelector(`option[value="${i}"]`);
             if (option) {
               const isSet = data.keys_status[`key${i}`];
-              option.textContent = `API Key ${i}${isSet ? ' ✓' : ''}`;
+              option.textContent = `API Key ${i}${isSet ? ' \u2713' : ''}`;
             }
           }
         }
@@ -544,11 +663,10 @@
       }
     }
 
-    // 处理端点选择变化
     function handleEndpointSelectChange() {
       const endpointSelect = document.getElementById('endpointSelect');
       const endpointInput = document.getElementById('endpoint');
-      
+
       if (endpointSelect.value === 'custom') {
         endpointInput.style.display = 'block';
         endpointInput.value = '';
@@ -557,12 +675,11 @@
         endpointInput.style.display = 'none';
         endpointInput.value = '';
       }
-      
+
       updateModelsButtonState();
       closeModels();
     }
 
-    // 更新模型按钮状态
     function updateModelsButtonState() {
       const endpointSelect = document.getElementById('endpointSelect');
       const btn = document.getElementById('showModelsBtn');
@@ -570,11 +687,10 @@
       btn.disabled = !val || val === 'custom';
     }
 
-    // 显示模型列表
     async function showModels() {
       const endpointSelect = document.getElementById('endpointSelect');
       const endpointId = endpointSelect.value;
-      
+
       if (!endpointId || endpointId === 'custom') return;
 
       const panel = document.getElementById('modelsPanel');
@@ -604,22 +720,19 @@
       }
     }
 
-    // 选择模型
     function selectModel(modelName) {
       document.getElementById('model').value = modelName;
       closeModels();
     }
 
-    // 关闭模型面板
     function closeModels() {
       document.getElementById('modelsPanel').style.display = 'none';
     }
 
-    // 处理API密钥选择变化
     function handleApiKeySelectChange() {
       const apiKeySelect = document.getElementById('apiKeySelect');
       const apiKeyInput = document.getElementById('apiKey');
-      
+
       if (apiKeySelect.value === 'custom') {
         apiKeyInput.style.display = 'block';
         apiKeyInput.placeholder = '输入新的API密钥';
@@ -631,24 +744,23 @@
       }
     }
 
-    // 保存配置
     async function saveConfig() {
       const endpointSelect = document.getElementById('endpointSelect');
       const endpointInput = document.getElementById('endpoint');
       const model = document.getElementById('model').value;
       const apiKeySelect = document.getElementById('apiKeySelect');
       const apiKeyInput = document.getElementById('apiKey');
-      
+
       const selectedEndpoint = endpointSelect.value;
       const selectedKey = apiKeySelect.value;
-      
+
       if (!selectedEndpoint) {
-        addMessage('系统', '请选择API端点', 'assistant');
+        addMessage('系统', '请选择API端点', 'assistant', false);
         return;
       }
-      
+
       if (!selectedKey) {
-        addMessage('系统', '请选择或输入API密钥', 'assistant');
+        addMessage('系统', '请选择或输入API密钥', 'assistant', false);
         return;
       }
 
@@ -657,23 +769,21 @@
         model: model
       };
 
-      // 自定义端点需要传入 URL
       if (selectedEndpoint === 'custom') {
         const customEndpoint = endpointInput.value.trim();
         if (!customEndpoint) {
-          addMessage('系统', '请输入自定义API端点地址', 'assistant');
+          addMessage('系统', '请输入自定义API端点地址', 'assistant', false);
           return;
         }
         configData.endpoint = customEndpoint;
       }
 
-      // 处理 API 密钥
       if (selectedKey >= '1' && selectedKey <= '5') {
         configData.selected_api_key = selectedKey;
       } else if (selectedKey === 'custom') {
         const newApiKey = apiKeyInput.value.trim();
         if (!newApiKey) {
-          addMessage('系统', '请输入新的API密钥', 'assistant');
+          addMessage('系统', '请输入新的API密钥', 'assistant', false);
           return;
         }
         configData.new_api_key = newApiKey;
@@ -689,34 +799,50 @@
           body: JSON.stringify(configData)
         });
 
-        if (response.status === 401) {
-          logout();
-          return;
-        }
+        if (response.status === 401) { logout(); return; }
 
         const result = await response.json();
         if (response.ok) {
-          addMessage('系统', '配置已保存！', 'assistant');
+          addMessage('系统', '配置已保存！', 'assistant', false);
           loadConfig();
         } else {
-          addMessage('系统', '配置保存失败: ' + result.error, 'assistant');
+          addMessage('系统', '配置保存失败: ' + result.error, 'assistant', false);
         }
       } catch (error) {
-        addMessage('系统', '配置保存失败: ' + error.message, 'assistant');
+        addMessage('系统', '配置保存失败: ' + error.message, 'assistant', false);
       }
     }
 
-    // 发送消息
+    // 发送消息（流式）
     async function sendMessage() {
+      if (isStreaming) return;
+
       const userInput = document.getElementById('userInput');
       const message = userInput.value.trim();
-
       if (!message) return;
 
       userInput.value = '';
-      addMessage('你', message, 'user');
+      addMessage('你', message, 'user', false);
 
-      const loadingMessage = addMessage('AI', '正在思考...', 'assistant');
+      // 添加到对话历史
+      conversationHistory.push({ role: 'user', content: message });
+
+      // 创建 AI 回复气泡
+      const chatMessages = document.getElementById('chatMessages');
+      const messageDiv = document.createElement('div');
+      messageDiv.className = 'message assistant';
+      const bubble = document.createElement('div');
+      bubble.className = 'message-bubble streaming-cursor';
+      messageDiv.appendChild(bubble);
+      const timeDiv = document.createElement('div');
+      timeDiv.className = 'message-time';
+      timeDiv.textContent = `AI \u00b7 ${new Date().toLocaleTimeString()}`;
+      messageDiv.appendChild(timeDiv);
+      chatMessages.appendChild(messageDiv);
+
+      isStreaming = true;
+      document.getElementById('sendButton').disabled = true;
+      let fullText = '';
 
       try {
         const response = await fetch('/api/chat', {
@@ -725,31 +851,83 @@
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${authToken}`
           },
-          body: JSON.stringify({ message: message })
+          body: JSON.stringify({ messages: conversationHistory })
         });
 
-        loadingMessage.remove();
-
         if (response.status === 401) {
+          messageDiv.remove();
           logout();
           return;
         }
 
-        const result = await response.json();
-
-        if (response.ok) {
-          addMessage('AI', result.response, 'assistant');
-        } else {
-          addMessage('系统', '错误: ' + result.error, 'assistant');
+        if (!response.ok) {
+          const errData = await response.json();
+          bubble.classList.remove('streaming-cursor');
+          bubble.textContent = '错误: ' + (errData.error || '请求失败');
+          isStreaming = false;
+          document.getElementById('sendButton').disabled = false;
+          return;
         }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (!trimmed || !trimmed.startsWith('data: ')) continue;
+            const data = trimmed.slice(6);
+            if (data === '[DONE]') break;
+            try {
+              const parsed = JSON.parse(data);
+              if (parsed.text) {
+                fullText += parsed.text;
+                // 渲染 Markdown
+                bubble.innerHTML = marked.parse(fullText);
+                // 高亮代码块
+                bubble.querySelectorAll('pre code').forEach(block => {
+                  hljs.highlightElement(block);
+                });
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+              }
+            } catch (e) {
+              // skip
+            }
+          }
+        }
+
+        // 流式结束
+        bubble.classList.remove('streaming-cursor');
+        if (fullText) {
+          bubble.innerHTML = marked.parse(fullText);
+          bubble.querySelectorAll('pre code').forEach(block => {
+            hljs.highlightElement(block);
+          });
+          conversationHistory.push({ role: 'assistant', content: fullText });
+        } else {
+          bubble.textContent = '未收到回复';
+        }
+
       } catch (error) {
-        loadingMessage.remove();
-        addMessage('系统', '网络错误: ' + error.message, 'assistant');
+        bubble.classList.remove('streaming-cursor');
+        bubble.textContent = '网络错误: ' + error.message;
       }
+
+      isStreaming = false;
+      document.getElementById('sendButton').disabled = false;
+      chatMessages.scrollTop = chatMessages.scrollHeight;
     }
 
-    // 添加消息到聊天区域
-    function addMessage(sender, content, type) {
+    // 添加消息到聊天区域（非流式用）
+    function addMessage(sender, content, type, renderMarkdown) {
       const chatMessages = document.getElementById('chatMessages');
       const messageDiv = document.createElement('div');
       messageDiv.className = `message ${type}`;
@@ -757,28 +935,33 @@
       const now = new Date();
       const timeString = now.toLocaleTimeString();
 
-      messageDiv.innerHTML = `
-        <div class="message-bubble">${escapeHtml(content)}</div>
-        <div class="message-time">${sender} · ${timeString}</div>
-      `;
+      const bubble = document.createElement('div');
+      bubble.className = 'message-bubble';
 
+      if (renderMarkdown && type === 'assistant') {
+        bubble.innerHTML = marked.parse(content);
+        bubble.querySelectorAll('pre code').forEach(block => {
+          hljs.highlightElement(block);
+        });
+      } else {
+        bubble.textContent = content;
+      }
+
+      const timeEl = document.createElement('div');
+      timeEl.className = 'message-time';
+      timeEl.textContent = `${sender} \u00b7 ${timeString}`;
+
+      messageDiv.appendChild(bubble);
+      messageDiv.appendChild(timeEl);
       chatMessages.appendChild(messageDiv);
       chatMessages.scrollTop = chatMessages.scrollHeight;
 
       return messageDiv;
     }
 
-    // HTML 转义防止 XSS
-    function escapeHtml(text) {
-      const div = document.createElement('div');
-      div.textContent = text;
-      return div.innerHTML;
-    }
-
-    // 处理回车键发送消息
     function handleKeyPress(event) {
-      if (event.key === 'Enter') {
-        sendMessage();
-      }
+      if (event.key === 'Enter') sendMessage();
     }
   </script>
+</body>
+</html>
