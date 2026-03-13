@@ -865,7 +865,7 @@
         if (!response.ok) {
           const errData = await response.json();
           bubble.classList.remove('streaming-cursor');
-          bubble.textContent = '错误: ' + (errData.error || '请求失败');
+          bubble.textContent = '错误: ' + (errData.error || '请求失败') + (errData.debug ? '\n[debug] ' + JSON.stringify(errData.debug) : '');
           isStreaming = false;
           document.getElementById('sendButton').disabled = false;
           return;
