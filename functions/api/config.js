@@ -21,6 +21,11 @@ const ENDPOINT_PRESETS = {
     url: 'https://a-ocnfniawgw.cn-shanghai.fcapp.run',
     type: 'anthropic',
     modelsKey: 'models:anyrouter',
+  },
+  cpa: {
+    url: 'http://165.154.199.140:8317/v1',
+    type: 'openai',
+    modelsKey: 'models:cpa',
   }
 };
 
@@ -93,12 +98,12 @@ export async function onRequest(context) {
 
       // 处理API密钥
       let selectedKey = currentConfig.selected_api_key;
-      if (data.selected_api_key && data.selected_api_key >= '1' && data.selected_api_key <= '5') {
+      if (data.selected_api_key && data.selected_api_key >= '1' && data.selected_api_key <= '6') {
         selectedKey = data.selected_api_key;
       } else if (data.new_api_key && data.new_api_key.trim() !== '') {
         const newKey = data.new_api_key.trim();
         let targetSlot = '1';
-        for (let i = 1; i <= 5; i++) {
+        for (let i = 1; i <= 6; i++) {
           const existingKey = await env.AI_CHAT_KEYS.get(`api_key_${i}`);
           if (!existingKey) {
             targetSlot = i.toString();

@@ -22,7 +22,7 @@ export async function onRequest(context) {
 
   try {
     const keysStatus = {};
-    for (let i = 1; i <= 5; i++) {
+    for (let i = 1; i <= 6; i++) {
       const key = await env.AI_CHAT_KEYS.get(`api_key_${i}`);
       keysStatus[`key${i}`] = !!key;
     }

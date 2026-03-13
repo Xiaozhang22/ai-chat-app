@@ -3,6 +3,7 @@
 const ENDPOINT_PRESETS = {
   gemini: { modelsKey: 'models:gemini' },
   anyrouter: { modelsKey: 'models:anyrouter' },
+  cpa: { modelsKey: 'models:cpa' },
 };
 
 export async function onRequest(context) {

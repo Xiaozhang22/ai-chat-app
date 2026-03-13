@@ -18,6 +18,10 @@ const ENDPOINT_PRESETS = {
   anyrouter: {
     url: 'https://a-ocnfniawgw.cn-shanghai.fcapp.run',
     type: 'anthropic',
+  },
+  cpa: {
+    url: 'http://165.154.199.140:8317/v1',
+    type: 'openai',
   }
 };
 
