@@ -23,7 +23,7 @@ const ENDPOINT_PRESETS = {
     modelsKey: 'models:anyrouter',
   },
   cpa: {
-    url: 'http://165.154.199.140:8317/v1',
+    url: 'http://cpa.zx1993.top:8317/v1',
     type: 'openai',
     modelsKey: 'models:cpa',
   }

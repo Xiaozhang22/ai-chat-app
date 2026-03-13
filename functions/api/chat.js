@@ -20,7 +20,7 @@ const ENDPOINT_PRESETS = {
     type: 'anthropic',
   },
   cpa: {
-    url: 'http://165.154.199.140:8317/v1',
+    url: 'http://cpa.zx1993.top:8317/v1',
     type: 'openai',
   }
 };
