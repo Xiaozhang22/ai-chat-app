@@ -316,7 +316,7 @@ export async function onRequest(context) {
     } else {
       const errorText = await aiResponse.text();
       return new Response(
-        JSON.stringify({ error: `API错误: ${aiResponse.status} - ${errorText}` }),
+        JSON.stringify({ error: `API错误: ${aiResponse.status} - ${errorText}`, debug: { url: reqConfig.url, endpoint, endpointType, model } }),
         {
           status: aiResponse.status,
           headers: {
