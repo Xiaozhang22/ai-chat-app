@@ -25,17 +25,16 @@ const ENDPOINT_PRESETS = {
   }
 };
 
-// 完整的 Claude Code 伪装请求头（参考 anyrouter-bridge.py）
+// Claude Code 伪装请求头（2026-03-20 抓包更新）
 const ANTHROPIC_HEADERS = {
-  'User-Agent': 'claude-cli/2.1.39 (external, cli)',
+  'User-Agent': 'claude-cli/2.1.80 (external, cli)',
   'X-Stainless-Lang': 'js',
-  'X-Stainless-Package-Version': '0.73.0',
+  'X-Stainless-Package-Version': '0.80.0',
   'X-Stainless-OS': 'Linux',
   'X-Stainless-Arch': 'x64',
   'X-Stainless-Runtime': 'node',
   'X-Stainless-Runtime-Version': 'v22.13.1',
   'X-Stainless-Timeout': '600',
-  'anthropic-dangerous-direct-browser-access': 'true',
   'anthropic-version': '2023-06-01',
   'x-app': 'cli',
   'anthropic-beta': 'interleaved-thinking-2025-05-14,context-management-2025-06-27,prompt-caching-scope-2026-01-05',
