@@ -225,6 +225,30 @@ export async function onRequest(context) {
     );
   }
 
+  // 诊断模式：查看 Workers 实际发出的 headers
+  try {
+    const diagData = await request.clone().json().catch(() => ({}));
+    if (diagData.debug_headers) {
+      const testHeaders = {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer test-debug',
+        ...ANTHROPIC_HEADERS,
+      };
+      const diagResp = await fetch('https://httpbin.org/post', {
+        method: 'POST',
+        headers: testHeaders,
+        body: JSON.stringify({ test: true }),
+      });
+      const diagResult = await diagResp.json();
+      return new Response(JSON.stringify({
+        intended_headers: testHeaders,
+        actual_headers_received_by_server: diagResult.headers,
+      }, null, 2), {
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      });
+    }
+  } catch(e) {}
+
   try {
     // 获取用户配置
     const storedConfig = await env.AI_CHAT_KEYS.get('user_config');
