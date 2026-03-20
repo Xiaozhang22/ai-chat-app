@@ -3,50 +3,137 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>轻量AI对话界面</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
+  <title>AI Terminal</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.1/marked.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Inter:wght@300;400;500;600;700&display=swap');
+
+    :root {
+      --bg-primary: #0a0e17;
+      --bg-secondary: #111827;
+      --bg-card: rgba(17, 24, 39, 0.8);
+      --bg-glass: rgba(15, 23, 42, 0.6);
+      --border-color: rgba(56, 189, 248, 0.15);
+      --border-glow: rgba(56, 189, 248, 0.4);
+      --accent-blue: #38bdf8;
+      --accent-cyan: #22d3ee;
+      --accent-purple: #a78bfa;
+      --accent-pink: #f472b6;
+      --text-primary: #e2e8f0;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --neon-glow: 0 0 20px rgba(56, 189, 248, 0.3);
+      --neon-glow-strong: 0 0 30px rgba(56, 189, 248, 0.5), 0 0 60px rgba(56, 189, 248, 0.2);
+    }
+
     * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
     }
+
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background-color: #f5f5f5;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
       height: 100vh;
       display: flex;
       flex-direction: column;
+      overflow: hidden;
     }
-    /* 登录页面样式 */
+
+    /* ===== Animated Background ===== */
+    .cyber-bg {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      z-index: 0;
+      overflow: hidden;
+    }
+    .cyber-bg::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background:
+        radial-gradient(ellipse at 20% 50%, rgba(56, 189, 248, 0.08) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 20%, rgba(167, 139, 250, 0.06) 0%, transparent 50%),
+        radial-gradient(ellipse at 50% 80%, rgba(34, 211, 238, 0.05) 0%, transparent 50%);
+    }
+    .grid-overlay {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-image:
+        linear-gradient(rgba(56, 189, 248, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(56, 189, 248, 0.03) 1px, transparent 1px);
+      background-size: 60px 60px;
+      animation: gridShift 20s linear infinite;
+    }
+    @keyframes gridShift {
+      0% { transform: translate(0, 0); }
+      100% { transform: translate(60px, 60px); }
+    }
+    .scan-line {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--accent-cyan), transparent);
+      opacity: 0.15;
+      animation: scanDown 8s linear infinite;
+    }
+    @keyframes scanDown {
+      0% { top: -2px; }
+      100% { top: 100%; }
+    }
+
+    /* ===== Login Page ===== */
     .login-container {
       display: flex;
       justify-content: center;
       align-items: center;
       height: 100vh;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      position: relative;
+      z-index: 1;
     }
     .login-box {
-      background: white;
+      background: var(--bg-card);
+      backdrop-filter: blur(20px);
       padding: 2.5rem;
-      border-radius: 12px;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+      border-radius: 16px;
+      border: 1px solid var(--border-color);
+      box-shadow: var(--neon-glow), inset 0 1px 0 rgba(255,255,255,0.05);
       width: 100%;
-      max-width: 380px;
+      max-width: 400px;
+      position: relative;
+      animation: fadeInUp 0.6s ease;
+    }
+    .login-box::before {
+      content: '';
+      position: absolute;
+      top: -1px; left: 20%; right: 20%;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--accent-blue), transparent);
+      border-radius: 2px;
     }
     .login-box h1 {
       text-align: center;
-      color: #2c3e50;
-      margin-bottom: 0.5rem;
-      font-size: 1.8rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.6rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 0.3rem;
+      letter-spacing: 2px;
     }
-    .login-box p {
+    .login-box .subtitle {
       text-align: center;
-      color: #7f8c8d;
+      color: var(--text-muted);
       margin-bottom: 2rem;
-      font-size: 0.9rem;
+      font-size: 0.85rem;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 1px;
     }
     .login-box .form-group {
       margin-bottom: 1.2rem;
@@ -54,49 +141,87 @@
     .login-box label {
       display: block;
       margin-bottom: 0.5rem;
-      color: #2c3e50;
+      color: var(--text-secondary);
       font-weight: 500;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
     }
     .login-box input {
       width: 100%;
       padding: 0.8rem 1rem;
-      border: 1px solid #ddd;
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid var(--border-color);
       border-radius: 8px;
       font-size: 14px;
-      transition: border-color 0.3s;
+      color: var(--text-primary);
+      transition: all 0.3s;
+      font-family: 'JetBrains Mono', monospace;
     }
     .login-box input:focus {
       outline: none;
-      border-color: #667eea;
+      border-color: var(--accent-blue);
+      box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.1), var(--neon-glow);
+    }
+    .login-box input::placeholder {
+      color: var(--text-muted);
     }
     .login-btn {
       width: 100%;
       padding: 0.9rem;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
+      background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan));
+      color: var(--bg-primary);
       border: none;
       border-radius: 8px;
-      font-size: 16px;
-      font-weight: 500;
+      font-size: 15px;
+      font-weight: 700;
       cursor: pointer;
-      transition: transform 0.2s, box-shadow 0.2s;
+      transition: all 0.3s;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      font-family: 'JetBrains Mono', monospace;
+      position: relative;
+      overflow: hidden;
+    }
+    .login-btn::after {
+      content: '';
+      position: absolute;
+      top: 0; left: -100%; right: 0; bottom: 0;
+      width: 200%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+      animation: shimmer 3s infinite;
+    }
+    @keyframes shimmer {
+      0% { transform: translateX(-50%); }
+      100% { transform: translateX(50%); }
     }
     .login-btn:hover {
       transform: translateY(-2px);
-      box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+      box-shadow: var(--neon-glow-strong);
     }
     .login-btn:disabled {
-      background: #95a5a6;
+      background: var(--text-muted);
       cursor: not-allowed;
       transform: none;
       box-shadow: none;
     }
-    /* 主页面样式 */
+
+    /* ===== Header ===== */
     .header {
-      background: #2c3e50;
-      color: white;
-      padding: 0.8rem 1rem;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      background: var(--bg-glass);
+      backdrop-filter: blur(20px);
+      padding: 0.7rem 1.2rem;
+      border-bottom: 1px solid var(--border-color);
+      position: relative;
+      z-index: 10;
+    }
+    .header::after {
+      content: '';
+      position: absolute;
+      bottom: -1px; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--accent-blue), var(--accent-cyan), transparent);
+      opacity: 0.5;
     }
     .header-content {
       display: flex;
@@ -104,8 +229,14 @@
       align-items: center;
     }
     .header h1 {
-      font-size: 1.2rem;
-      margin-bottom: 0;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.1rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: 2px;
     }
     .header-actions {
       display: flex;
@@ -113,112 +244,239 @@
       align-items: center;
     }
     .header-btn {
-      padding: 0.4rem 0.8rem;
-      color: white;
-      border: 1px solid rgba(255,255,255,0.3);
-      border-radius: 4px;
+      padding: 0.4rem 0.9rem;
+      color: var(--text-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
       cursor: pointer;
-      font-size: 13px;
+      font-size: 12px;
       background: transparent;
-      transition: background 0.2s;
+      transition: all 0.3s;
+      font-family: 'JetBrains Mono', monospace;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
     .header-btn:hover {
-      background: rgba(255,255,255,0.1);
+      border-color: var(--accent-blue);
+      color: var(--accent-blue);
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.15);
     }
     .header-btn.danger {
-      border-color: #e74c3c;
-      color: #ff6b6b;
+      border-color: rgba(248, 113, 113, 0.3);
+      color: #f87171;
     }
     .header-btn.danger:hover {
-      background: #e74c3c;
-      color: white;
+      border-color: #f87171;
+      background: rgba(248, 113, 113, 0.1);
+      box-shadow: 0 0 12px rgba(248, 113, 113, 0.2);
     }
+
+    /* ===== Config Panel ===== */
     .config-panel {
-      background: white;
-      margin: 0;
-      border-bottom: 1px solid #e0e0e0;
+      background: var(--bg-glass);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border-color);
       overflow: hidden;
       max-height: 0;
-      transition: max-height 0.3s ease, padding 0.3s ease;
+      transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), padding 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      z-index: 5;
     }
     .config-panel.open {
-      max-height: 400px;
-      padding: 1rem;
+      max-height: 500px;
+      padding: 1rem 1.2rem;
     }
     .config-row {
       display: flex;
       gap: 0.8rem;
-      margin-bottom: 0.5rem;
+      margin-bottom: 0.6rem;
       align-items: center;
     }
     .config-row label {
       min-width: 70px;
       font-weight: 500;
-      font-size: 14px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-family: 'JetBrains Mono', monospace;
     }
     .config-row input, .config-row select {
       flex: 1;
-      padding: 0.5rem;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      font-size: 14px;
+      padding: 0.5rem 0.8rem;
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      font-size: 13px;
+      color: var(--text-primary);
+      font-family: 'JetBrains Mono', monospace;
+      transition: all 0.3s;
     }
     .config-row select {
       cursor: pointer;
-      background-color: white;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%2394a3b8' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 0.7rem center;
+      padding-right: 2rem;
     }
-    .config-row select:focus, .config-row input:focus {
+    .config-row select option {
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+    }
+    .config-row input:focus, .config-row select:focus {
       outline: none;
-      border-color: #3498db;
+      border-color: var(--accent-blue);
+      box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.1);
+    }
+    .config-row input::placeholder {
+      color: var(--text-muted);
     }
     .config-row button {
       padding: 0.5rem 1rem;
-      background: #3498db;
-      color: white;
-      border: none;
-      border-radius: 4px;
+      background: linear-gradient(135deg, rgba(56, 189, 248, 0.15), rgba(34, 211, 238, 0.15));
+      color: var(--accent-cyan);
+      border: 1px solid rgba(34, 211, 238, 0.3);
+      border-radius: 6px;
       cursor: pointer;
-      font-size: 14px;
+      font-size: 12px;
       white-space: nowrap;
+      transition: all 0.3s;
+      font-family: 'JetBrains Mono', monospace;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
     .config-row button:hover {
-      background: #2980b9;
+      background: linear-gradient(135deg, rgba(56, 189, 248, 0.25), rgba(34, 211, 238, 0.25));
+      box-shadow: 0 0 15px rgba(34, 211, 238, 0.2);
+      border-color: var(--accent-cyan);
     }
     .config-row button:disabled {
-      background: #bdc3c7;
+      opacity: 0.3;
       cursor: not-allowed;
+      box-shadow: none;
+    }
+    .config-row button.save-btn {
+      background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan));
+      color: var(--bg-primary);
+      border: none;
+      font-weight: 600;
+    }
+    .config-row button.save-btn:hover {
+      box-shadow: var(--neon-glow);
+    }
+
+    /* Key info badge */
+    .key-info {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.35rem 0.7rem;
+      background: rgba(56, 189, 248, 0.1);
+      border: 1px solid rgba(56, 189, 248, 0.2);
+      border-radius: 6px;
+      font-size: 12px;
+      color: var(--accent-blue);
+      font-family: 'JetBrains Mono', monospace;
+      white-space: nowrap;
+    }
+    .key-info .dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--accent-cyan);
+      box-shadow: 0 0 6px var(--accent-cyan);
+    }
+
+    /* Models Panel */
+    .models-panel {
+      display: none;
+      margin-top: 0.5rem;
+      padding: 0.8rem;
+      background: rgba(15, 23, 42, 0.6);
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+    }
+    .models-panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+    }
+    .models-panel-header span {
+      font-weight: 500;
+      font-size: 12px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .models-panel-header button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+      color: var(--text-muted);
+      transition: color 0.2s;
+      line-height: 1;
+    }
+    .models-panel-header button:hover {
+      color: var(--accent-blue);
     }
     .model-tag {
+      display: inline-block;
       padding: 0.3rem 0.7rem;
-      background: #e8f4fd;
-      border: 1px solid #b8daff;
-      border-radius: 16px;
+      background: rgba(56, 189, 248, 0.08);
+      border: 1px solid rgba(56, 189, 248, 0.2);
+      border-radius: 20px;
       cursor: pointer;
-      font-size: 13px;
-      color: #2c3e50;
-      transition: background 0.2s;
+      font-size: 12px;
+      color: var(--text-secondary);
+      transition: all 0.3s;
+      font-family: 'JetBrains Mono', monospace;
     }
     .model-tag:hover {
-      background: #3498db;
-      color: white;
-      border-color: #3498db;
+      background: rgba(56, 189, 248, 0.2);
+      color: var(--accent-blue);
+      border-color: var(--accent-blue);
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.15);
     }
+
+    /* ===== Chat Area ===== */
     .chat-container {
       flex: 1;
       display: flex;
       flex-direction: column;
       overflow: hidden;
+      position: relative;
+      z-index: 1;
     }
     .chat-messages {
       flex: 1;
-      padding: 1rem;
+      padding: 1.2rem;
       overflow-y: auto;
-      background: #fafafa;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(56, 189, 248, 0.2) transparent;
     }
+    .chat-messages::-webkit-scrollbar {
+      width: 6px;
+    }
+    .chat-messages::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .chat-messages::-webkit-scrollbar-thumb {
+      background: rgba(56, 189, 248, 0.2);
+      border-radius: 3px;
+    }
+
     .message {
-      margin-bottom: 1rem;
+      margin-bottom: 1.2rem;
       display: flex;
       flex-direction: column;
+      animation: messageIn 0.3s ease;
+    }
+    @keyframes messageIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
     }
     .message.user {
       align-items: flex-end;
@@ -228,48 +486,52 @@
     }
     .message-bubble {
       max-width: 80%;
-      padding: 0.75rem 1rem;
-      border-radius: 18px;
+      padding: 0.8rem 1.1rem;
+      border-radius: 16px;
       word-wrap: break-word;
-      line-height: 1.6;
+      line-height: 1.7;
+      font-size: 14px;
     }
     .message.user .message-bubble {
-      background: #3498db;
-      color: white;
+      background: linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(34, 211, 238, 0.15));
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      color: var(--text-primary);
       white-space: pre-wrap;
+      border-bottom-right-radius: 4px;
     }
     .message.assistant .message-bubble {
-      background: #ecf0f1;
-      color: #2c3e50;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+      border-bottom-left-radius: 4px;
     }
-    /* Markdown 内容样式 */
+
+    /* Markdown styles */
     .message.assistant .message-bubble p {
       margin: 0.4em 0;
     }
-    .message.assistant .message-bubble p:first-child {
-      margin-top: 0;
-    }
-    .message.assistant .message-bubble p:last-child {
-      margin-bottom: 0;
-    }
+    .message.assistant .message-bubble p:first-child { margin-top: 0; }
+    .message.assistant .message-bubble p:last-child { margin-bottom: 0; }
     .message.assistant .message-bubble pre {
-      background: #1e1e1e;
-      color: #d4d4d4;
-      padding: 0.8rem;
+      background: #0d1117;
+      color: #e6edf3;
+      padding: 1rem;
       border-radius: 8px;
       overflow-x: auto;
-      margin: 0.5rem 0;
+      margin: 0.6rem 0;
       font-size: 13px;
+      border: 1px solid rgba(56, 189, 248, 0.1);
     }
     .message.assistant .message-bubble code {
-      font-family: 'SF Mono', Monaco, 'Cascadia Code', Consolas, monospace;
+      font-family: 'JetBrains Mono', monospace;
       font-size: 0.9em;
     }
     .message.assistant .message-bubble :not(pre) > code {
-      background: #e8e8e8;
+      background: rgba(56, 189, 248, 0.1);
       padding: 0.15em 0.4em;
       border-radius: 4px;
       font-size: 0.85em;
+      color: var(--accent-cyan);
     }
     .message.assistant .message-bubble ul,
     .message.assistant .message-bubble ol {
@@ -277,10 +539,10 @@
       margin: 0.4em 0;
     }
     .message.assistant .message-bubble blockquote {
-      border-left: 3px solid #3498db;
+      border-left: 3px solid var(--accent-blue);
       padding-left: 0.8em;
       margin: 0.4em 0;
-      color: #555;
+      color: var(--text-secondary);
     }
     .message.assistant .message-bubble table {
       border-collapse: collapse;
@@ -289,79 +551,121 @@
     }
     .message.assistant .message-bubble th,
     .message.assistant .message-bubble td {
-      border: 1px solid #ddd;
+      border: 1px solid var(--border-color);
       padding: 0.4em 0.6em;
       text-align: left;
     }
     .message.assistant .message-bubble th {
-      background: #f0f0f0;
+      background: rgba(56, 189, 248, 0.05);
+      color: var(--accent-blue);
     }
+
     .message-time {
-      font-size: 0.75rem;
-      color: #7f8c8d;
-      margin-top: 0.25rem;
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      margin-top: 0.3rem;
+      font-family: 'JetBrains Mono', monospace;
     }
+
+    /* ===== Chat Input ===== */
     .chat-input {
-      padding: 0.8rem 1rem;
-      background: white;
-      border-top: 1px solid #ecf0f1;
+      padding: 0.8rem 1.2rem;
+      background: var(--bg-glass);
+      backdrop-filter: blur(16px);
+      border-top: 1px solid var(--border-color);
+      position: relative;
+    }
+    .chat-input::before {
+      content: '';
+      position: absolute;
+      top: -1px; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(56, 189, 248, 0.3), transparent);
     }
     .input-row {
       display: flex;
-      gap: 0.5rem;
+      gap: 0.6rem;
     }
     .input-row input {
       flex: 1;
-      padding: 0.75rem;
-      border: 1px solid #ddd;
+      padding: 0.75rem 1.2rem;
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid var(--border-color);
       border-radius: 24px;
       font-size: 14px;
+      color: var(--text-primary);
       outline: none;
+      transition: all 0.3s;
+      font-family: 'Inter', sans-serif;
     }
     .input-row input:focus {
-      border-color: #3498db;
+      border-color: var(--accent-blue);
+      box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.08), 0 0 20px rgba(56, 189, 248, 0.1);
+    }
+    .input-row input::placeholder {
+      color: var(--text-muted);
     }
     .input-row button {
       padding: 0.75rem 1.5rem;
-      background: #27ae60;
-      color: white;
+      background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan));
+      color: var(--bg-primary);
       border: none;
       border-radius: 24px;
       cursor: pointer;
-      font-size: 14px;
+      font-size: 13px;
+      font-weight: 700;
+      transition: all 0.3s;
+      font-family: 'JetBrains Mono', monospace;
+      text-transform: uppercase;
+      letter-spacing: 1px;
     }
     .input-row button:hover {
-      background: #229954;
+      box-shadow: var(--neon-glow-strong);
+      transform: translateY(-1px);
     }
     .input-row button:disabled {
-      background: #95a5a6;
+      background: var(--text-muted);
       cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
     }
-    .error {
-      background: #e74c3c;
-      color: white;
-      padding: 0.5rem;
-      border-radius: 4px;
-      margin-bottom: 1rem;
-      font-size: 14px;
-    }
-    /* 流式输出光标 */
+
+    /* ===== Streaming Cursor ===== */
     .streaming-cursor::after {
       content: '';
       display: inline-block;
       width: 2px;
       height: 1em;
-      background: #2c3e50;
+      background: var(--accent-cyan);
       margin-left: 2px;
-      animation: blink 0.8s infinite;
+      animation: cursorBlink 0.8s infinite;
       vertical-align: text-bottom;
+      box-shadow: 0 0 6px var(--accent-cyan);
     }
-    @keyframes blink {
+    @keyframes cursorBlink {
       0%, 100% { opacity: 1; }
       50% { opacity: 0; }
     }
 
-    /* 移动端适配 */
+    /* ===== Error ===== */
+    .error {
+      background: rgba(248, 113, 113, 0.15);
+      border: 1px solid rgba(248, 113, 113, 0.3);
+      color: #fca5a5;
+      padding: 0.5rem 0.8rem;
+      border-radius: 6px;
+      margin-bottom: 1rem;
+      font-size: 13px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* ===== Animations ===== */
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ===== Mobile ===== */
     @media (max-width: 768px) {
       .login-box {
         margin: 1rem;
@@ -385,7 +689,7 @@
         max-width: 90%;
       }
       .header h1 {
-        font-size: 1rem;
+        font-size: 0.9rem;
       }
       .input-row button {
         padding: 0.75rem 1rem;
@@ -394,95 +698,99 @@
   </style>
 </head>
 <body>
-  <!-- 登录页面 -->
+  <div class="cyber-bg">
+    <div class="grid-overlay"></div>
+    <div class="scan-line"></div>
+  </div>
+
+  <!-- Login Page -->
   <div class="login-container" id="loginPage">
     <div class="login-box">
-      <h1>AI 对话</h1>
-      <p>请登录以继续使用</p>
+      <h1>AI TERMINAL</h1>
+      <p class="subtitle">// SECURE ACCESS REQUIRED</p>
       <div class="form-group">
-        <label>账号</label>
-        <input type="text" id="loginUsername" placeholder="请输入账号">
+        <label>ACCOUNT</label>
+        <input type="text" id="loginUsername" placeholder="enter username" autocomplete="username">
       </div>
       <div class="form-group">
-        <label>密码</label>
-        <input type="password" id="loginPassword" placeholder="请输入密码" onkeypress="handleLoginKeyPress(event)">
+        <label>PASSWORD</label>
+        <input type="password" id="loginPassword" placeholder="enter password" onkeypress="handleLoginKeyPress(event)" autocomplete="current-password">
       </div>
       <div id="loginError" class="error" style="display: none;"></div>
-      <button class="login-btn" onclick="login()">登 录</button>
+      <button class="login-btn" onclick="login()">CONNECT</button>
     </div>
   </div>
 
-  <!-- 主页面（对话界面） -->
+  <!-- Main Page -->
   <div id="mainPage" style="display: none; height: 100vh; flex-direction: column;">
     <div class="header">
       <div class="header-content">
-        <h1>AI 对话</h1>
+        <h1>AI TERMINAL</h1>
         <div class="header-actions">
-          <button class="header-btn" onclick="toggleConfig()" id="configToggleBtn">设置</button>
-          <button class="header-btn" onclick="clearConversation()">清除对话</button>
-          <button class="header-btn danger" onclick="logout()">退出</button>
+          <button class="header-btn" onclick="toggleConfig()" id="configToggleBtn">CONFIG</button>
+          <button class="header-btn" onclick="clearConversation()">CLEAR</button>
+          <button class="header-btn danger" onclick="logout()">EXIT</button>
         </div>
       </div>
     </div>
 
     <div class="config-panel" id="configPanel">
       <div class="config-row">
-        <label>API端点:</label>
+        <label>ENDPOINT</label>
         <select id="endpointSelect" onchange="handleEndpointSelectChange()">
-          <option value="">-- 选择API端点 --</option>
+          <option value="">-- Select Endpoint --</option>
           <option value="gemini">Gemini (gemini.zx1993.top)</option>
-          <option value="anyrouter">AnyRouter (Anthropic格式)</option>
+          <option value="anyrouter">AnyRouter (Anthropic)</option>
           <option value="cpa">CPA Codex (cpa.zx1993.top)</option>
-          <option value="custom">重新输入</option>
+          <option value="custom">Custom Input</option>
         </select>
-        <input type="text" id="endpoint" placeholder="输入自定义API端点" style="display: none;">
+        <input type="text" id="endpoint" placeholder="Custom endpoint URL" style="display: none;">
       </div>
       <div class="config-row">
-        <label>模型:</label>
-        <input type="text" id="model" placeholder="gpt-3.5-turbo" value="gpt-3.5-turbo">
-        <button onclick="showModels()" id="showModelsBtn">查看模型</button>
+        <label>MODEL</label>
+        <input type="text" id="model" placeholder="model name" value="gpt-3.5-turbo">
+        <button onclick="showModels()" id="showModelsBtn">MODELS</button>
       </div>
-      <div id="modelsPanel" style="display: none; margin-top: 0.5rem; padding: 0.5rem; background: #f8f9fa; border-radius: 6px; border: 1px solid #e0e0e0;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-          <span style="font-weight: 500; font-size: 13px; color: #555;">可用模型列表</span>
-          <button onclick="closeModels()" style="background: none; border: none; cursor: pointer; font-size: 16px; color: #999;">&#10005;</button>
+      <div class="models-panel" id="modelsPanel">
+        <div class="models-panel-header">
+          <span>Available Models</span>
+          <button onclick="closeModels()">&#10005;</button>
         </div>
         <div id="modelsList" style="display: flex; flex-wrap: wrap; gap: 0.4rem;"></div>
       </div>
-      <div class="config-row">
-        <label>API密钥:</label>
+      <div class="config-row" id="apiKeyRow">
+        <label>API KEY</label>
         <select id="apiKeySelect" onchange="handleApiKeySelectChange()">
-          <option value="">-- 选择API密钥 --</option>
-          <option value="1">API Key 1</option>
-          <option value="2">API Key 2</option>
-          <option value="3">API Key 3</option>
-          <option value="4">API Key 4</option>
-          <option value="5">API Key 5</option>
-          <option value="6">API Key 6</option>
-          <option value="custom">重新输入新密钥</option>
+          <option value="">-- Select Key --</option>
+          <option value="custom">New Key</option>
         </select>
-        <input type="password" id="apiKey" placeholder="输入你的API密钥" style="display: none;">
-        <button onclick="saveConfig()">保存配置</button>
+        <input type="password" id="apiKey" placeholder="Enter API key" style="display: none;">
+        <button onclick="saveConfig()" class="save-btn">SAVE</button>
+      </div>
+      <div class="config-row" id="autoKeyInfo" style="display: none;">
+        <label>API KEY</label>
+        <span class="key-info"><span class="dot"></span> <span id="autoKeyLabel">Auto-assigned</span></span>
+        <button onclick="saveConfig()" class="save-btn">SAVE</button>
       </div>
     </div>
 
     <div class="chat-container">
       <div class="chat-messages" id="chatMessages">
         <div class="message assistant">
-          <div class="message-bubble">你好！请先在顶部"设置"中配置API，然后开始对话。</div>
+          <div class="message-bubble">System initialized. Configure API endpoint via CONFIG panel to begin.</div>
         </div>
       </div>
       <div class="chat-input">
         <div class="input-row">
-          <input type="text" id="userInput" placeholder="输入你的消息..." onkeypress="handleKeyPress(event)">
-          <button onclick="sendMessage()" id="sendButton">发送</button>
+          <input type="text" id="userInput" placeholder="Enter message..." onkeypress="handleKeyPress(event)">
+          <button onclick="sendMessage()" id="sendButton">SEND</button>
         </div>
       </div>
     </div>
   </div>
 
   <script>
-    // 配置 marked
+    // Marked config
     marked.setOptions({
       highlight: function(code, lang) {
         if (lang && hljs.getLanguage(lang)) {
@@ -493,17 +801,22 @@
       breaks: true,
     });
 
-    // 全局变量
+    // Endpoint -> Key mapping
+    const ENDPOINT_KEY_MAP = {
+      anyrouter: ['1'],
+      gemini: ['2', '3', '4', '5'],
+      cpa: ['6'],
+    };
+
+    // Global state
     let authToken = localStorage.getItem('auth_token');
     let conversationHistory = [];
     let isStreaming = false;
 
-    // 页面加载时检查登录状态
     document.addEventListener('DOMContentLoaded', function() {
       checkAuth();
     });
 
-    // 检查登录状态
     function checkAuth() {
       if (authToken) {
         showChatPage();
@@ -523,28 +836,24 @@
       document.getElementById('mainPage').style.display = 'flex';
     }
 
-    // 切换配置面板
     function toggleConfig() {
-      const panel = document.getElementById('configPanel');
-      panel.classList.toggle('open');
+      document.getElementById('configPanel').classList.toggle('open');
     }
 
-    // 清除对话
     function clearConversation() {
       conversationHistory = [];
-      const chatMessages = document.getElementById('chatMessages');
-      chatMessages.innerHTML = '';
-      addMessage('系统', '对话已清除。', 'assistant', false);
+      document.getElementById('chatMessages').innerHTML = '';
+      addMessage('System', 'Conversation cleared.', 'assistant', false);
     }
 
-    // 登录
+    // Login
     async function login() {
       const username = document.getElementById('loginUsername').value.trim();
       const password = document.getElementById('loginPassword').value;
       const errorDiv = document.getElementById('loginError');
 
       if (!username || !password) {
-        errorDiv.textContent = '请输入账号和密码';
+        errorDiv.textContent = 'Username and password required';
         errorDiv.style.display = 'block';
         return;
       }
@@ -557,7 +866,6 @@
         });
 
         const result = await response.json();
-
         if (response.ok) {
           authToken = result.token;
           localStorage.setItem('auth_token', authToken);
@@ -565,11 +873,11 @@
           showChatPage();
           loadConfig();
         } else {
-          errorDiv.textContent = result.error || '登录失败';
+          errorDiv.textContent = result.error || 'Login failed';
           errorDiv.style.display = 'block';
         }
       } catch (error) {
-        errorDiv.textContent = '网络错误: ' + error.message;
+        errorDiv.textContent = 'Network error: ' + error.message;
         errorDiv.style.display = 'block';
       }
     }
@@ -580,9 +888,7 @@
           method: 'POST',
           headers: { 'Authorization': `Bearer ${authToken}` }
         });
-      } catch (error) {
-        console.error('退出登录失败:', error);
-      }
+      } catch (error) {}
       authToken = null;
       localStorage.removeItem('auth_token');
       conversationHistory = [];
@@ -593,7 +899,7 @@
       if (event.key === 'Enter') login();
     }
 
-    // 加载配置
+    // Load config
     async function loadConfig() {
       try {
         const response = await fetch('/api/config', {
@@ -621,24 +927,72 @@
         }
 
         updateModelsButtonState();
-
-        const apiKeySelect = document.getElementById('apiKeySelect');
-        const apiKeyInput = document.getElementById('apiKey');
-
-        if (config.selected_api_key) {
-          apiKeySelect.value = config.selected_api_key;
-          apiKeyInput.style.display = 'none';
-        } else if (config.api_key_set) {
-          apiKeySelect.value = 'custom';
-          apiKeyInput.style.display = 'none';
-        } else {
-          apiKeySelect.value = '';
-          apiKeyInput.style.display = 'none';
-        }
-
+        updateKeyUI(config.selected_endpoint, config.selected_api_key);
         loadApiKeyStatus();
       } catch (error) {
-        console.error('加载配置失败:', error);
+        console.error('Failed to load config:', error);
+      }
+    }
+
+    // Update key UI based on endpoint
+    function updateKeyUI(endpointId, selectedKey) {
+      const allowedKeys = ENDPOINT_KEY_MAP[endpointId] || [];
+      const apiKeyRow = document.getElementById('apiKeyRow');
+      const autoKeyInfo = document.getElementById('autoKeyInfo');
+      const apiKeySelect = document.getElementById('apiKeySelect');
+
+      if (!endpointId || endpointId === 'custom') {
+        // No endpoint or custom: show generic key select
+        apiKeyRow.style.display = 'flex';
+        autoKeyInfo.style.display = 'none';
+        rebuildKeyOptions([], selectedKey);
+        return;
+      }
+
+      if (allowedKeys.length === 1) {
+        // Single key (AnyRouter, CPA): show auto-assigned badge
+        apiKeyRow.style.display = 'none';
+        autoKeyInfo.style.display = 'flex';
+        const label = endpointId === 'anyrouter' ? 'Key 1 (Auto)' : 'Key 6 (Auto)';
+        document.getElementById('autoKeyLabel').textContent = label;
+      } else {
+        // Multiple keys (Gemini): show filtered dropdown
+        apiKeyRow.style.display = 'flex';
+        autoKeyInfo.style.display = 'none';
+        rebuildKeyOptions(allowedKeys, selectedKey);
+      }
+    }
+
+    // Rebuild API key dropdown with only allowed keys
+    function rebuildKeyOptions(allowedKeys, selectedKey) {
+      const apiKeySelect = document.getElementById('apiKeySelect');
+      // Keep first option and custom option, rebuild the rest
+      apiKeySelect.innerHTML = '<option value="">-- Select Key --</option>';
+
+      if (allowedKeys.length === 0) {
+        // Show all keys (for custom/unknown endpoint)
+        for (let i = 1; i <= 6; i++) {
+          const opt = document.createElement('option');
+          opt.value = i.toString();
+          opt.textContent = `API Key ${i}`;
+          apiKeySelect.appendChild(opt);
+        }
+      } else {
+        for (const k of allowedKeys) {
+          const opt = document.createElement('option');
+          opt.value = k;
+          opt.textContent = `API Key ${k}`;
+          apiKeySelect.appendChild(opt);
+        }
+      }
+
+      const customOpt = document.createElement('option');
+      customOpt.value = 'custom';
+      customOpt.textContent = 'New Key';
+      apiKeySelect.appendChild(customOpt);
+
+      if (selectedKey) {
+        apiKeySelect.value = selectedKey;
       }
     }
 
@@ -656,20 +1010,22 @@
             const option = apiKeySelect.querySelector(`option[value="${i}"]`);
             if (option) {
               const isSet = data.keys_status[`key${i}`];
-              option.textContent = `API Key ${i}${isSet ? ' \u2713' : ''}`;
+              const baseText = `API Key ${i}`;
+              option.textContent = `${baseText}${isSet ? ' \u2713' : ''}`;
             }
           }
         }
       } catch (error) {
-        console.error('加载API密钥状态失败:', error);
+        console.error('Failed to load key status:', error);
       }
     }
 
     function handleEndpointSelectChange() {
       const endpointSelect = document.getElementById('endpointSelect');
       const endpointInput = document.getElementById('endpoint');
+      const endpointId = endpointSelect.value;
 
-      if (endpointSelect.value === 'custom') {
+      if (endpointId === 'custom') {
         endpointInput.style.display = 'block';
         endpointInput.value = '';
         endpointInput.focus();
@@ -680,24 +1036,25 @@
 
       updateModelsButtonState();
       closeModels();
+
+      // Update key UI for new endpoint
+      const allowedKeys = ENDPOINT_KEY_MAP[endpointId] || [];
+      const defaultKey = allowedKeys.length > 0 ? allowedKeys[0] : '';
+      updateKeyUI(endpointId, defaultKey);
     }
 
     function updateModelsButtonState() {
-      const endpointSelect = document.getElementById('endpointSelect');
-      const btn = document.getElementById('showModelsBtn');
-      const val = endpointSelect.value;
-      btn.disabled = !val || val === 'custom';
+      const val = document.getElementById('endpointSelect').value;
+      document.getElementById('showModelsBtn').disabled = !val || val === 'custom';
     }
 
     async function showModels() {
-      const endpointSelect = document.getElementById('endpointSelect');
-      const endpointId = endpointSelect.value;
-
+      const endpointId = document.getElementById('endpointSelect').value;
       if (!endpointId || endpointId === 'custom') return;
 
       const panel = document.getElementById('modelsPanel');
       const list = document.getElementById('modelsList');
-      list.innerHTML = '<span style="color: #999; font-size: 13px;">加载中...</span>';
+      list.innerHTML = '<span style="color: var(--text-muted); font-size: 12px; font-family: JetBrains Mono, monospace;">Loading...</span>';
       panel.style.display = 'block';
 
       try {
@@ -711,14 +1068,14 @@
         const models = data.models || [];
 
         if (models.length === 0) {
-          list.innerHTML = '<span style="color: #999; font-size: 13px;">暂无预设模型</span>';
+          list.innerHTML = '<span style="color: var(--text-muted); font-size: 12px;">No models available</span>';
         } else {
           list.innerHTML = models.map(m =>
             `<span class="model-tag" onclick="selectModel('${m}')">${m}</span>`
           ).join('');
         }
       } catch (error) {
-        list.innerHTML = '<span style="color: #e74c3c; font-size: 13px;">加载失败</span>';
+        list.innerHTML = '<span style="color: #f87171; font-size: 12px;">Failed to load</span>';
       }
     }
 
@@ -737,7 +1094,7 @@
 
       if (apiKeySelect.value === 'custom') {
         apiKeyInput.style.display = 'block';
-        apiKeyInput.placeholder = '输入新的API密钥';
+        apiKeyInput.placeholder = 'Enter new API key';
         apiKeyInput.value = '';
         apiKeyInput.focus();
       } else {
@@ -754,17 +1111,13 @@
       const apiKeyInput = document.getElementById('apiKey');
 
       const selectedEndpoint = endpointSelect.value;
-      const selectedKey = apiKeySelect.value;
 
       if (!selectedEndpoint) {
-        addMessage('系统', '请选择API端点', 'assistant', false);
+        addMessage('System', 'Please select an endpoint', 'assistant', false);
         return;
       }
 
-      if (!selectedKey) {
-        addMessage('系统', '请选择或输入API密钥', 'assistant', false);
-        return;
-      }
+      const allowedKeys = ENDPOINT_KEY_MAP[selectedEndpoint] || [];
 
       const configData = {
         selected_endpoint: selectedEndpoint,
@@ -774,21 +1127,32 @@
       if (selectedEndpoint === 'custom') {
         const customEndpoint = endpointInput.value.trim();
         if (!customEndpoint) {
-          addMessage('系统', '请输入自定义API端点地址', 'assistant', false);
+          addMessage('System', 'Please enter custom endpoint URL', 'assistant', false);
           return;
         }
         configData.endpoint = customEndpoint;
       }
 
-      if (selectedKey >= '1' && selectedKey <= '6') {
-        configData.selected_api_key = selectedKey;
-      } else if (selectedKey === 'custom') {
-        const newApiKey = apiKeyInput.value.trim();
-        if (!newApiKey) {
-          addMessage('系统', '请输入新的API密钥', 'assistant', false);
+      // Auto-assign key for single-key endpoints
+      if (allowedKeys.length === 1) {
+        configData.selected_api_key = allowedKeys[0];
+      } else {
+        const selectedKey = apiKeySelect.value;
+        if (!selectedKey) {
+          addMessage('System', 'Please select an API key', 'assistant', false);
           return;
         }
-        configData.new_api_key = newApiKey;
+
+        if (selectedKey >= '1' && selectedKey <= '6') {
+          configData.selected_api_key = selectedKey;
+        } else if (selectedKey === 'custom') {
+          const newApiKey = apiKeyInput.value.trim();
+          if (!newApiKey) {
+            addMessage('System', 'Please enter API key', 'assistant', false);
+            return;
+          }
+          configData.new_api_key = newApiKey;
+        }
       }
 
       try {
@@ -805,17 +1169,17 @@
 
         const result = await response.json();
         if (response.ok) {
-          addMessage('系统', '配置已保存！', 'assistant', false);
+          addMessage('System', 'Configuration saved.', 'assistant', false);
           loadConfig();
         } else {
-          addMessage('系统', '配置保存失败: ' + result.error, 'assistant', false);
+          addMessage('System', 'Save failed: ' + result.error, 'assistant', false);
         }
       } catch (error) {
-        addMessage('系统', '配置保存失败: ' + error.message, 'assistant', false);
+        addMessage('System', 'Save failed: ' + error.message, 'assistant', false);
       }
     }
 
-    // 发送消息（流式）
+    // Send message (streaming)
     async function sendMessage() {
       if (isStreaming) return;
 
@@ -824,12 +1188,9 @@
       if (!message) return;
 
       userInput.value = '';
-      addMessage('你', message, 'user', false);
-
-      // 添加到对话历史
+      addMessage('You', message, 'user', false);
       conversationHistory.push({ role: 'user', content: message });
 
-      // 创建 AI 回复气泡
       const chatMessages = document.getElementById('chatMessages');
       const messageDiv = document.createElement('div');
       messageDiv.className = 'message assistant';
@@ -865,7 +1226,7 @@
         if (!response.ok) {
           const errData = await response.json();
           bubble.classList.remove('streaming-cursor');
-          bubble.textContent = '错误: ' + (errData.error || '请求失败') + (errData.debug ? '\n[debug] ' + JSON.stringify(errData.debug) : '');
+          bubble.textContent = 'Error: ' + (errData.error || 'Request failed') + (errData.debug ? '\n[debug] ' + JSON.stringify(errData.debug) : '');
           isStreaming = false;
           document.getElementById('sendButton').disabled = false;
           return;
@@ -892,21 +1253,16 @@
               const parsed = JSON.parse(data);
               if (parsed.text) {
                 fullText += parsed.text;
-                // 渲染 Markdown
                 bubble.innerHTML = marked.parse(fullText);
-                // 高亮代码块
                 bubble.querySelectorAll('pre code').forEach(block => {
                   hljs.highlightElement(block);
                 });
                 chatMessages.scrollTop = chatMessages.scrollHeight;
               }
-            } catch (e) {
-              // skip
-            }
+            } catch (e) {}
           }
         }
 
-        // 流式结束
         bubble.classList.remove('streaming-cursor');
         if (fullText) {
           bubble.innerHTML = marked.parse(fullText);
@@ -915,12 +1271,12 @@
           });
           conversationHistory.push({ role: 'assistant', content: fullText });
         } else {
-          bubble.textContent = '未收到回复';
+          bubble.textContent = 'No response received';
         }
 
       } catch (error) {
         bubble.classList.remove('streaming-cursor');
-        bubble.textContent = '网络错误: ' + error.message;
+        bubble.textContent = 'Network error: ' + error.message;
       }
 
       isStreaming = false;
@@ -928,14 +1284,13 @@
       chatMessages.scrollTop = chatMessages.scrollHeight;
     }
 
-    // 添加消息到聊天区域（非流式用）
+    // Add message to chat (non-streaming)
     function addMessage(sender, content, type, renderMarkdown) {
       const chatMessages = document.getElementById('chatMessages');
       const messageDiv = document.createElement('div');
       messageDiv.className = `message ${type}`;
 
-      const now = new Date();
-      const timeString = now.toLocaleTimeString();
+      const timeString = new Date().toLocaleTimeString();
 
       const bubble = document.createElement('div');
       bubble.className = 'message-bubble';

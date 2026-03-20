@@ -10,6 +10,13 @@ const DEFAULT_CONFIG = {
   selected_api_key: ''
 };
 
+// 端点→API Key 映射
+const ENDPOINT_KEY_MAP = {
+  anyrouter: ['1'],
+  gemini: ['2', '3', '4', '5'],
+  cpa: ['6'],
+};
+
 // 端点预设映射
 const ENDPOINT_PRESETS = {
   gemini: {
@@ -51,13 +58,17 @@ export async function onRequest(context) {
       const storedConfig = await env.AI_CHAT_KEYS.get('user_config');
       const config = storedConfig ? JSON.parse(storedConfig) : DEFAULT_CONFIG;
 
+      const selectedEp = config.selected_endpoint || '';
+      const allowedKeys = ENDPOINT_KEY_MAP[selectedEp] || [];
+
       return new Response(JSON.stringify({
         endpoint: config.endpoint,
         endpoint_type: config.endpoint_type || 'openai',
-        selected_endpoint: config.selected_endpoint || '',
+        selected_endpoint: selectedEp,
         model: config.model,
         selected_api_key: config.selected_api_key || '',
-        api_key_set: !!config.selected_api_key
+        api_key_set: !!config.selected_api_key,
+        allowed_keys: allowedKeys,
       }), {
         headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       });
@@ -98,8 +109,14 @@ export async function onRequest(context) {
 
       // 处理API密钥
       let selectedKey = currentConfig.selected_api_key;
+      const allowedKeys = ENDPOINT_KEY_MAP[selectedEndpoint] || [];
+
       if (data.selected_api_key && data.selected_api_key >= '1' && data.selected_api_key <= '6') {
-        selectedKey = data.selected_api_key;
+        if (allowedKeys.length > 0 && !allowedKeys.includes(data.selected_api_key)) {
+          selectedKey = allowedKeys[0];
+        } else {
+          selectedKey = data.selected_api_key;
+        }
       } else if (data.new_api_key && data.new_api_key.trim() !== '') {
         const newKey = data.new_api_key.trim();
         let targetSlot = '1';
@@ -112,6 +129,11 @@ export async function onRequest(context) {
         }
         await env.AI_CHAT_KEYS.put(`api_key_${targetSlot}`, newKey);
         selectedKey = targetSlot;
+      }
+
+      // 如果当前 key 不在允许范围内，自动选第一个允许的 key
+      if (allowedKeys.length > 0 && !allowedKeys.includes(selectedKey)) {
+        selectedKey = allowedKeys[0];
       }
 
       // 合并新配置

@@ -1,55 +1,72 @@
-# 🤖 轻量 AI 对话应用
+# AI Terminal
 
-基于 Cloudflare Pages + Workers + KV 的无服务器 AI 对话应用，支持自定义 API 端点和模型配置。
+基于 Cloudflare Pages + Workers + KV 的无服务器 AI 对话应用，支持多端点切换（Gemini / AnyRouter / CPA Codex）和 API Key 自动绑定。
 
-> 💡 本项目使用 **Cloudflare Pages Functions**，它会自动将 `functions/` 目录下的代码部署为 Workers。你只需要部署到 Pages，无需单独创建 Workers 项目。
+> 本项目使用 **Cloudflare Pages Functions**，`functions/` 目录下的代码会自动部署为 Workers。只需部署到 Pages，无需单独创建 Workers 项目。
 
-## ✨ 功能特性
+## 功能特性
 
-- 🔐 用户登录认证（基于 Token，24小时有效期）
-- ⚙️ 自定义 API 配置（端点、模型、API 密钥）
-- 💬 AI 对话功能（支持 OpenAI 兼容 API）
-- 💾 配置持久化存储（Cloudflare KV）
-- 🌍 全球 CDN 加速（Cloudflare 边缘网络）
-- 🆓 完全免费部署
+- 用户登录认证（Token，24小时有效期）
+- 多 API 端点预设（Gemini / AnyRouter / CPA Codex）
+- 端点与 API Key 自动绑定，切换端点自动匹配密钥
+- 支持 OpenAI 兼容格式和 Anthropic 格式
+- 流式输出（SSE）
+- 配置持久化（Cloudflare KV）
+- 深色科技风 UI（霓虹发光 + 网格动画 + 毛玻璃）
 
-## 📁 项目结构
+## 项目结构
 
 ```
 ai-chat-app/
-├── index.html              # 前端页面（登录 + 对话界面）
-├── wrangler.toml           # Cloudflare Workers 配置
-├── README.md               # 项目说明文档
-└── functions/
-    └── api/
-        ├── _middleware.js  # 认证中间件（Token 验证）
-        ├── login.js        # POST /api/login - 登录接口
-        ├── logout.js       # POST /api/logout - 退出登录
-        ├── config.js       # GET/POST /api/config - 配置管理
-        └── chat.js         # POST /api/chat - AI 对话
+├── index.html                  # 前端页面（登录 + 对话界面）
+├── wrangler.toml               # Cloudflare Workers 配置
+├── README.md
+├── DEPLOY_GUIDE.md
+├── SECURITY.md
+└── functions/api/
+    ├── _middleware.js           # 认证中间件（Token 验证）
+    ├── login.js                 # POST /api/login
+    ├── logout.js                # POST /api/logout
+    ├── config.js                # GET/POST /api/config
+    ├── chat.js                  # POST /api/chat（流式对话）
+    ├── keys.js                  # DELETE /api/keys/:id
+    ├── config/models.js         # GET /api/config/models
+    └── config/keys.js           # GET /api/config/keys
 ```
 
-## 🚀 部署步骤
+## 端点与 API Key 映射
 
-### 第一步：创建 Cloudflare KV 命名空间
+系统内置三个 API 端点预设，每个端点绑定固定的 API Key 槽位：
+
+| 端点 | 地址 | 协议格式 | 绑定 Key |
+|------|------|----------|----------|
+| **AnyRouter** | Anthropic 兼容路由 | Anthropic | Key 1（自动） |
+| **Gemini** | gemini.zx1993.top | OpenAI | Key 2 / 3 / 4 / 5（手动选择） |
+| **CPA Codex** | cpa.zx1993.top | OpenAI | Key 6（自动） |
+
+- 选择 AnyRouter 或 CPA Codex 时，API Key 自动分配，无需手动选择
+- 选择 Gemini 时，从 Key 2-5 中手动选择
+- 切换端点后，如果当前 Key 不在允许范围内，后端会自动回退到该端点的第一个可用 Key
+
+## 部署步骤
+
+### 1. 创建 Cloudflare KV 命名空间
 
 1. 登录 [Cloudflare 控制台](https://dash.cloudflare.com/)
-2. 左侧菜单选择「Workers 和 Pages」→「KV」
-3. 点击「创建命名空间」
-4. 输入名称（如 `AI_CHAT_KEYS`），点击创建
-5. **记录命名空间的 ID**（后续配置需要）
+2. 左侧菜单「Workers 和 Pages」→「KV」
+3. 创建命名空间（如 `AI_CHAT_KEYS`），记录 ID
 
-### 第二步：配置项目
+### 2. 配置项目
 
-编辑 `wrangler.toml` 文件，将 KV 命名空间 ID 替换为你的实际 ID：
+编辑 `wrangler.toml`，替换 KV 命名空间 ID：
 
 ```toml
 [[kv_namespaces]]
 binding = "AI_CHAT_KEYS"
-id = "你的KV命名空间ID"  # ← 替换这里
+id = "你的KV命名空间ID"
 ```
 
-### 第三步：推送到 GitHub
+### 3. 推送到 GitHub
 
 ```bash
 git init
@@ -59,67 +76,77 @@ git remote add origin https://github.com/你的用户名/ai-chat-app.git
 git push -u origin main
 ```
 
-### 第四步：部署到 Cloudflare Pages
+### 4. 部署到 Cloudflare Pages
 
-1. 登录 Cloudflare 控制台
-2. 选择「Workers 和 Pages」→「创建」→「Pages」→「连接到 Git」
-3. 选择你的 GitHub 仓库
-4. 配置部署参数：
-   - 框架预设：`None`
-   - 构建命令：留空
-   - 构建输出目录：留空
-5. 点击「保存并部署」
+1. Cloudflare 控制台 →「Workers 和 Pages」→「创建」→「Pages」→「连接到 Git」
+2. 选择仓库，框架预设 `None`，构建命令和输出目录留空
+3. 部署完成后进入项目设置 →「Functions」→「KV 命名空间绑定」
+4. 添加绑定：变量名 `AI_CHAT_KEYS`，选择对应命名空间
+5. 重新部署使绑定生效
 
-### 第五步：绑定 KV 命名空间
-
-1. 部署完成后，进入项目设置
-2. 选择「Functions」→「KV 命名空间绑定」
-3. 添加绑定：
-   - 变量名称：`AI_CHAT_KEYS`
-   - KV 命名空间：选择你创建的命名空间
-4. 重新部署项目使绑定生效
-
-## 🔑 默认登录凭证
+## 默认登录凭证
 
 | 账号 | 密码 |
 |------|------|
 | root | password |
 
-> ⚠️ 生产环境请修改 `functions/api/login.js` 中的用户凭证
+> 生产环境请修改 `functions/api/login.js` 中的用户凭证。
 
-## 📖 使用说明
-
-1. 访问部署后的域名（如 `https://ai-chat-app.pages.dev`）
-2. 使用账号密码登录
-3. 配置 API 设置：
-   - API 端点：OpenAI 兼容的 API 地址
-   - 模型：如 `gpt-3.5-turbo`、`gpt-4` 等
-   - API 密钥：可以选择已保存的密钥（API Key 1-5）或选择"重新输入新密钥"
-4. 点击「保存配置」
-5. 开始与 AI 对话
-
-## 🔑 API密钥管理
-
-系统支持保存最多5个API密钥，方便在不同密钥之间切换：
-
-- **API Key 1-5**：预设的5个密钥槽位，可以保存不同的API密钥
-- **重新输入新密钥**：输入新的API密钥，系统会自动保存到第一个空位置
-- **安全存储**：所有API密钥都加密存储在Cloudflare KV中，前端永远不会显示真实密钥
-- **状态显示**：已设置的密钥会在选项后显示 ✓ 标记
-
-## 🔧 API 接口说明
+## API 接口
 
 | 接口 | 方法 | 说明 | 认证 |
 |------|------|------|------|
 | `/api/login` | POST | 用户登录 | 否 |
 | `/api/logout` | POST | 退出登录 | 是 |
-| `/api/config` | GET | 获取配置 | 是 |
-| `/api/config` | POST | 保存配置 | 是 |
-| `/api/chat` | POST | AI 对话 | 是 |
+| `/api/config` | GET | 获取配置（含 `allowed_keys`） | 是 |
+| `/api/config` | POST | 保存配置（含 Key 合法性验证） | 是 |
+| `/api/config/models` | GET | 获取端点可用模型列表 | 是 |
+| `/api/config/keys` | GET | 获取 Key 槽位状态 | 是 |
+| `/api/keys/:id` | DELETE | 删除指定 Key | 是 |
+| `/api/chat` | POST | AI 对话（SSE 流式） | 是 |
 
-## 💰 免费额度
+## KV 存储结构
 
-Cloudflare 免费套餐完全够用：
+| Key | 内容 |
+|-----|------|
+| `user_config` | JSON：endpoint、model、selected_api_key 等 |
+| `api_key_1` ~ `api_key_6` | API 密钥明文 |
+| `sessions:{token}` | 登录会话（24h TTL） |
+| `models:gemini` / `models:anyrouter` / `models:cpa` | 各端点可用模型列表 |
+
+## 自定义修改
+
+### 修改登录凭证
+
+```javascript
+// functions/api/login.js
+const USERS = {
+  root: 'your_password',
+  admin: 'admin123',
+};
+```
+
+### 修改端点预设或 Key 映射
+
+```javascript
+// functions/api/config.js
+const ENDPOINT_KEY_MAP = {
+  anyrouter: ['1'],
+  gemini: ['2', '3', '4', '5'],
+  cpa: ['6'],
+};
+```
+
+前端 `index.html` 中也有对应的 `ENDPOINT_KEY_MAP`，需同步修改。
+
+### 修改 Token 有效期
+
+```javascript
+// functions/api/login.js
+const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24h
+```
+
+## 免费额度
 
 | 服务 | 免费额度 |
 |------|---------|
@@ -127,57 +154,6 @@ Cloudflare 免费套餐完全够用：
 | Workers | 每天 10 万次请求 |
 | KV | 1GB 存储、100万次读取/月、10万次写入/月 |
 
-## 🛠️ 自定义修改
-
-### 修改登录凭证
-
-编辑 `functions/api/login.js`：
-
-```javascript
-const USERS = {
-  root: 'password',      // 修改密码
-  admin: 'admin123',     // 添加新用户
-};
-```
-
-### 修改默认 API 配置
-
-编辑 `functions/api/config.js` 和 `functions/api/chat.js`：
-
-```javascript
-const DEFAULT_CONFIG = {
-  endpoint: 'https://api.openai.com/v1',  // 默认端点
-  model: 'gpt-3.5-turbo',                  // 默认模型
-  api_key: ''
-};
-```
-
-### 修改 Token 有效期
-
-编辑 `functions/api/login.js`：
-
-```javascript
-// 修改 24 * 60 * 60 * 1000 为你想要的毫秒数
-const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-```
-
-## 📝 常见问题
-
-### Q: 部署后提示 KV 命名空间未找到？
-
-确保：
-1. `wrangler.toml` 中的 KV ID 正确
-2. 在 Cloudflare Pages 设置中绑定了 KV 命名空间
-3. 重新部署项目
-
-### Q: 登录后刷新页面需要重新登录？
-
-检查浏览器是否禁用了 localStorage，Token 存储在 localStorage 中。
-
-### Q: API 请求返回 CORS 错误？
-
-所有 Workers 接口已添加 CORS 头，如果仍有问题，检查是否有浏览器插件拦截。
-
-## 📄 License
+## License
 
 MIT License
