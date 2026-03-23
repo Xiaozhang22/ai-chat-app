@@ -25,11 +25,11 @@ const ENDPOINT_PRESETS = {
   }
 };
 
-// Claude Code 伪装请求头（2026-03-20 抓包更新）
+// 完整的 Claude Code 伪装请求头（参考 anyrouter-bridge.py）
 const ANTHROPIC_HEADERS = {
-  'User-Agent': 'claude-cli/2.1.80 (external, cli)',
+  'User-Agent': 'claude-cli/2.1.39 (external, cli)',
   'X-Stainless-Lang': 'js',
-  'X-Stainless-Package-Version': '0.80.0',
+  'X-Stainless-Package-Version': '0.73.0',
   'X-Stainless-OS': 'Linux',
   'X-Stainless-Arch': 'x64',
   'X-Stainless-Runtime': 'node',
