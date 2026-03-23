@@ -35,6 +35,7 @@ const ANTHROPIC_HEADERS = {
   'X-Stainless-Runtime': 'node',
   'X-Stainless-Runtime-Version': 'v22.13.1',
   'X-Stainless-Timeout': '600',
+  'anthropic-dangerous-direct-browser-access': 'true',
   'anthropic-version': '2023-06-01',
   'x-app': 'cli',
   'anthropic-beta': 'interleaved-thinking-2025-05-14,context-management-2025-06-27,prompt-caching-scope-2026-01-05',
@@ -224,61 +225,6 @@ export async function onRequest(context) {
       }
     );
   }
-
-  // 诊断模式
-  try {
-    const diagData = await request.clone().json().catch(() => ({}));
-    if (diagData.debug_headers) {
-      const testHeaders = {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer test-debug',
-        ...ANTHROPIC_HEADERS,
-      };
-      const diagResp = await fetch('https://httpbin.org/post', {
-        method: 'POST',
-        headers: testHeaders,
-        body: JSON.stringify({ test: true }),
-      });
-      const diagResult = await diagResp.json();
-      return new Response(JSON.stringify({
-        intended_headers: testHeaders,
-        actual_headers_received_by_server: diagResult.headers,
-      }, null, 2), {
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-      });
-    }
-
-    // 直接测试 AnyRouter
-    if (diagData.debug_anyrouter) {
-      const apiKey = await env.AI_CHAT_KEYS.get('api_key_1');
-      const sessionId = crypto.randomUUID();
-      const testBody = JSON.stringify({
-        model: 'claude-opus-4-6',
-        max_tokens: 20,
-        messages: [{ role: 'user', content: 'say hi' }],
-        system: CLAUDE_CODE_SYSTEM,
-        metadata: { user_id: `user_test_account__session_${sessionId}` },
-        stream: false,
-      });
-      const testResp = await fetch('https://a-ocnfniawgw.cn-shanghai.fcapp.run/v1/messages?beta=true', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`,
-          ...ANTHROPIC_HEADERS,
-        },
-        body: testBody,
-      });
-      const testResult = await testResp.text();
-      return new Response(JSON.stringify({
-        status: testResp.status,
-        response: testResult.slice(0, 500),
-        sent_body: JSON.parse(testBody),
-      }, null, 2), {
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-      });
-    }
-  } catch(e) {}
 
   try {
     // 获取用户配置
