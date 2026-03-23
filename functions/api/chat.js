@@ -16,7 +16,7 @@ const ENDPOINT_PRESETS = {
     type: 'openai',
   },
   anyrouter: {
-    url: 'https://video1.zx1993.top:8443',
+    url: 'https://anyrouter.zx1993.top:2096',
     type: 'anthropic',
   },
   cpa: {
