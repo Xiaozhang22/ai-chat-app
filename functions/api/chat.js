@@ -16,7 +16,7 @@ const ENDPOINT_PRESETS = {
     type: 'openai',
   },
   anyrouter: {
-    url: 'https://a-ocnfniawgw.cn-shanghai.fcapp.run',
+    url: 'https://anyrouter.zx1993.top',
     type: 'anthropic',
   },
   cpa: {
@@ -25,37 +25,11 @@ const ENDPOINT_PRESETS = {
   }
 };
 
-// 完整的 Claude Code 伪装请求头（参考 anyrouter-bridge.py）
+// Anthropic 请求基础头（伪装由 bridge 处理）
 const ANTHROPIC_HEADERS = {
-  'User-Agent': 'claude-cli/2.1.39 (external, cli)',
-  'X-Stainless-Lang': 'js',
-  'X-Stainless-Package-Version': '0.73.0',
-  'X-Stainless-OS': 'Linux',
-  'X-Stainless-Arch': 'x64',
-  'X-Stainless-Runtime': 'node',
-  'X-Stainless-Runtime-Version': 'v22.13.1',
-  'X-Stainless-Timeout': '600',
-  'anthropic-dangerous-direct-browser-access': 'true',
   'anthropic-version': '2023-06-01',
-  'x-app': 'cli',
-  'anthropic-beta': 'interleaved-thinking-2025-05-14,context-management-2025-06-27,prompt-caching-scope-2026-01-05',
-  'accept-language': '*',
-  'sec-fetch-mode': 'cors',
   'Accept': 'text/event-stream',
 };
-
-// Claude Code system prompt（AnyRouter 验证需要）
-const CLAUDE_CODE_SYSTEM = [
-  {
-    type: 'text',
-    text: 'You are Claude Code, Anthropic\'s official CLI for Claude.',
-    cache_control: { type: 'ephemeral' }
-  },
-  {
-    type: 'text',
-    text: 'You are a helpful AI assistant.'
-  }
-];
 
 // 构造 OpenAI 兼容请求（流式）
 function buildOpenAIRequest(endpoint, model, apiKey, messages) {
@@ -73,26 +47,18 @@ function buildOpenAIRequest(endpoint, model, apiKey, messages) {
   };
 }
 
-// 构造 Anthropic 请求（流式）
+// 构造 Anthropic 请求（流式，经 bridge 中转）
 function buildAnthropicRequest(endpoint, model, apiKey, messages) {
-  const sessionId = crypto.randomUUID();
-  const fakeUserHash = 'webchat-bridge-user-hash';
-
   return {
-    url: `${endpoint}/v1/messages?beta=true`,
+    url: `${endpoint}/v1/messages`,
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`,
       ...ANTHROPIC_HEADERS,
     },
     body: JSON.stringify({
       model: model,
       max_tokens: 4096,
       messages: messages,
-      system: CLAUDE_CODE_SYSTEM,
-      metadata: {
-        user_id: `user_${fakeUserHash}_account__session_${sessionId}`
-      },
       stream: true,
     }),
   };
