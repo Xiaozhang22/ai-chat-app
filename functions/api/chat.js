@@ -198,33 +198,41 @@ export async function onRequest(context) {
     const storedConfig = await env.AI_CHAT_KEYS.get('user_config');
     const config = storedConfig ? JSON.parse(storedConfig) : DEFAULT_CONFIG;
 
-    // 检查是否选择了API密钥
-    if (!config.selected_api_key) {
-      return new Response(
-        JSON.stringify({ error: '请先选择或设置API密钥' }),
-        {
-          status: 400,
-          headers: {
-            'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*',
-          },
-        }
-      );
-    }
+    // 根据端点类型构造请求
+    const endpointType = config.endpoint_type || 'openai';
+    const endpoint = config.endpoint || DEFAULT_CONFIG.endpoint;
+    const model = config.model || DEFAULT_CONFIG.model;
 
-    // 从KV中获取实际的API密钥
-    const apiKey = await env.AI_CHAT_KEYS.get(`api_key_${config.selected_api_key}`);
-    if (!apiKey) {
-      return new Response(
-        JSON.stringify({ error: 'API密钥不存在，请重新设置' }),
-        {
-          status: 400,
-          headers: {
-            'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*',
-          },
-        }
-      );
+    // Anthropic 走 bridge，不需要 API key
+    let apiKey = null;
+    if (endpointType !== 'anthropic') {
+      // 检查是否选择了API密钥
+      if (!config.selected_api_key) {
+        return new Response(
+          JSON.stringify({ error: '请先选择或设置API密钥' }),
+          {
+            status: 400,
+            headers: {
+              'Content-Type': 'application/json',
+              'Access-Control-Allow-Origin': '*',
+            },
+          }
+        );
+      }
+
+      apiKey = await env.AI_CHAT_KEYS.get(`api_key_${config.selected_api_key}`);
+      if (!apiKey) {
+        return new Response(
+          JSON.stringify({ error: 'API密钥不存在，请重新设置' }),
+          {
+            status: 400,
+            headers: {
+              'Content-Type': 'application/json',
+              'Access-Control-Allow-Origin': '*',
+            },
+          }
+        );
+      }
     }
 
     // 解析请求体
@@ -243,11 +251,6 @@ export async function onRequest(context) {
         }
       );
     }
-
-    // 根据端点类型构造请求
-    const endpointType = config.endpoint_type || 'openai';
-    const endpoint = config.endpoint || DEFAULT_CONFIG.endpoint;
-    const model = config.model || DEFAULT_CONFIG.model;
 
     let reqConfig;
     if (endpointType === 'anthropic') {
