@@ -29,6 +29,7 @@ const ENDPOINT_PRESETS = {
 const ANTHROPIC_HEADERS = {
   'anthropic-version': '2023-06-01',
   'Accept': 'text/event-stream',
+  'X-Bridge-Token': 'anyrouter',
 };
 
 // 构造 OpenAI 兼容请求（流式）
