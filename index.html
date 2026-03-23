@@ -1219,6 +1219,8 @@
 
         if (response.status === 401) {
           messageDiv.remove();
+          isStreaming = false;
+          document.getElementById('sendButton').disabled = false;
           logout();
           return;
         }

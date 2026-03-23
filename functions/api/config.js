@@ -25,7 +25,7 @@ const ENDPOINT_PRESETS = {
     modelsKey: 'models:gemini',
   },
   anyrouter: {
-    url: 'https://a-ocnfniawgw.cn-shanghai.fcapp.run',
+    url: 'http://anyrouter.zx1993.top:2083',
     type: 'anthropic',
     modelsKey: 'models:anyrouter',
   },
