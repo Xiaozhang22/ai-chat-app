@@ -585,24 +585,37 @@
     .input-row {
       display: flex;
       gap: 0.6rem;
+      align-items: flex-end;
     }
-    .input-row input {
+    .input-row textarea {
       flex: 1;
-      padding: 0.75rem 1.2rem;
+      padding: 0.7rem 1.1rem;
       background: rgba(15, 23, 42, 0.6);
       border: 1px solid var(--border-color);
-      border-radius: 24px;
+      border-radius: 18px;
       font-size: 14px;
+      line-height: 1.5;
       color: var(--text-primary);
       outline: none;
-      transition: all 0.3s;
+      transition: border-color 0.3s, box-shadow 0.3s;
       font-family: 'Inter', sans-serif;
+      resize: none;
+      min-height: 42px;
+      max-height: 200px;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(56, 189, 248, 0.2) transparent;
     }
-    .input-row input:focus {
+    .input-row textarea::-webkit-scrollbar { width: 6px; }
+    .input-row textarea::-webkit-scrollbar-thumb {
+      background: rgba(56, 189, 248, 0.2);
+      border-radius: 3px;
+    }
+    .input-row textarea:focus {
       border-color: var(--accent-blue);
       box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.08), 0 0 20px rgba(56, 189, 248, 0.1);
     }
-    .input-row input::placeholder {
+    .input-row textarea::placeholder {
       color: var(--text-muted);
     }
     .input-row button {
@@ -610,7 +623,7 @@
       background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan));
       color: var(--bg-primary);
       border: none;
-      border-radius: 24px;
+      border-radius: 22px;
       cursor: pointer;
       font-size: 13px;
       font-weight: 700;
@@ -618,6 +631,8 @@
       font-family: 'JetBrains Mono', monospace;
       text-transform: uppercase;
       letter-spacing: 1px;
+      flex-shrink: 0;
+      align-self: flex-end;
     }
     .input-row button:hover {
       box-shadow: var(--neon-glow-strong);
@@ -628,6 +643,89 @@
       cursor: not-allowed;
       transform: none;
       box-shadow: none;
+    }
+    .input-row button.stop-mode {
+      background: linear-gradient(135deg, #f87171, #ef4444);
+      color: #fff;
+      animation: pulseStop 1.6s ease-in-out infinite;
+    }
+    .input-row button.stop-mode:hover {
+      box-shadow: 0 0 24px rgba(248, 113, 113, 0.5);
+    }
+    @keyframes pulseStop {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(248, 113, 113, 0.45); }
+      50% { box-shadow: 0 0 0 8px rgba(248, 113, 113, 0); }
+    }
+
+    /* ===== Code block copy button ===== */
+    .message.assistant .message-bubble pre {
+      position: relative;
+    }
+    .code-copy-btn {
+      position: absolute;
+      top: 0.45rem;
+      right: 0.45rem;
+      padding: 0.2rem 0.55rem;
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      color: var(--text-secondary);
+      border-radius: 5px;
+      font-size: 10px;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      opacity: 0;
+      transition: opacity 0.2s, color 0.2s, border-color 0.2s;
+    }
+    .message.assistant .message-bubble pre:hover .code-copy-btn,
+    .code-copy-btn:focus {
+      opacity: 1;
+    }
+    .code-copy-btn:hover {
+      color: var(--accent-blue);
+      border-color: var(--accent-blue);
+    }
+    .code-copy-btn.copied {
+      color: #4ade80;
+      border-color: #4ade80;
+      opacity: 1;
+    }
+
+    /* ===== Message actions (copy whole AI msg) ===== */
+    .message-actions {
+      display: flex;
+      gap: 0.4rem;
+      margin-top: 0.35rem;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    .message.assistant:hover .message-actions,
+    .message-actions:focus-within {
+      opacity: 1;
+    }
+    .msg-action-btn {
+      padding: 0.18rem 0.55rem;
+      background: transparent;
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      border-radius: 4px;
+      font-size: 10px;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .msg-action-btn:hover {
+      color: var(--accent-blue);
+      border-color: var(--accent-blue);
+    }
+    .msg-action-btn.copied {
+      color: #4ade80;
+      border-color: #4ade80;
+    }
+    @media (hover: none) {
+      .code-copy-btn,
+      .message-actions { opacity: 1; }
     }
 
     /* ===== Streaming Cursor ===== */
@@ -782,8 +880,8 @@
       </div>
       <div class="chat-input">
         <div class="input-row">
-          <input type="text" id="userInput" placeholder="Enter message..." onkeypress="handleKeyPress(event)">
-          <button onclick="sendMessage()" id="sendButton">SEND</button>
+          <textarea id="userInput" rows="1" placeholder="Enter message... (Shift+Enter for newline)" oninput="autoResizeInput()" onkeydown="handleKeyPress(event)"></textarea>
+          <button onclick="handleSendClick()" id="sendButton">SEND</button>
         </div>
       </div>
     </div>
@@ -812,6 +910,46 @@
     let authToken = localStorage.getItem('auth_token');
     let conversationHistory = [];
     let isStreaming = false;
+    let abortController = null;
+
+    // ===== Conversation persistence =====
+    function historyKey() {
+      return authToken ? 'chat_history_' + authToken.slice(0, 16) : 'chat_history_anon';
+    }
+    function saveHistory() {
+      try {
+        if (!authToken) return;
+        localStorage.setItem(historyKey(), JSON.stringify(conversationHistory));
+      } catch (e) { /* quota or serialization issue – ignore */ }
+    }
+    function clearStoredHistory() {
+      try {
+        if (authToken) localStorage.removeItem(historyKey());
+      } catch (e) {}
+    }
+    function loadHistoryAndRender() {
+      try {
+        if (!authToken) return false;
+        const raw = localStorage.getItem(historyKey());
+        if (!raw) return false;
+        const parsed = JSON.parse(raw);
+        if (!Array.isArray(parsed) || parsed.length === 0) return false;
+        conversationHistory = parsed;
+        const chatMessages = document.getElementById('chatMessages');
+        chatMessages.innerHTML = '';
+        for (const msg of conversationHistory) {
+          if (msg.role === 'user') {
+            addMessage('You', msg.content, 'user', false);
+          } else if (msg.role === 'assistant') {
+            addMessage('AI', msg.content, 'assistant', true);
+          }
+        }
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+        return true;
+      } catch (e) {
+        return false;
+      }
+    }
 
     document.addEventListener('DOMContentLoaded', function() {
       checkAuth();
@@ -834,6 +972,9 @@
     function showChatPage() {
       document.getElementById('loginPage').style.display = 'none';
       document.getElementById('mainPage').style.display = 'flex';
+      // Restore previous conversation if any
+      loadHistoryAndRender();
+      autoResizeInput();
     }
 
     function toggleConfig() {
@@ -842,6 +983,7 @@
 
     function clearConversation() {
       conversationHistory = [];
+      clearStoredHistory();
       document.getElementById('chatMessages').innerHTML = '';
       addMessage('System', 'Conversation cleared.', 'assistant', false);
     }
@@ -889,6 +1031,7 @@
           headers: { 'Authorization': `Bearer ${authToken}` }
         });
       } catch (error) {}
+      clearStoredHistory();
       authToken = null;
       localStorage.removeItem('auth_token');
       conversationHistory = [];
@@ -1188,8 +1331,10 @@
       if (!message) return;
 
       userInput.value = '';
+      autoResizeInput();
       addMessage('You', message, 'user', false);
       conversationHistory.push({ role: 'user', content: message });
+      saveHistory();
 
       const chatMessages = document.getElementById('chatMessages');
       const messageDiv = document.createElement('div');
@@ -1204,8 +1349,32 @@
       chatMessages.appendChild(messageDiv);
 
       isStreaming = true;
-      document.getElementById('sendButton').disabled = true;
+      abortController = new AbortController();
+      setSendButtonMode('stop');
       let fullText = '';
+
+      const finalizeBubble = (appendNote) => {
+        bubble.classList.remove('streaming-cursor');
+        if (fullText) {
+          bubble.innerHTML = marked.parse(fullText);
+          bubble.querySelectorAll('pre code').forEach(block => hljs.highlightElement(block));
+          enhanceCodeBlocks(bubble);
+          attachMessageActions(messageDiv, () => fullText);
+          if (appendNote) {
+            const note = document.createElement('div');
+            note.style.cssText = 'margin-top:0.4rem;font-size:11px;color:#f87171;font-family:JetBrains Mono,monospace;letter-spacing:0.5px;';
+            note.textContent = appendNote;
+            bubble.appendChild(note);
+          }
+          conversationHistory.push({ role: 'assistant', content: fullText });
+          saveHistory();
+        } else if (appendNote) {
+          bubble.textContent = appendNote;
+          bubble.style.color = '#f87171';
+        } else {
+          bubble.textContent = 'No response received';
+        }
+      };
 
       try {
         const response = await fetch('/api/chat', {
@@ -1214,23 +1383,26 @@
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${authToken}`
           },
-          body: JSON.stringify({ messages: conversationHistory })
+          body: JSON.stringify({ messages: conversationHistory }),
+          signal: abortController.signal
         });
 
         if (response.status === 401) {
           messageDiv.remove();
           isStreaming = false;
-          document.getElementById('sendButton').disabled = false;
+          abortController = null;
+          setSendButtonMode('send');
           logout();
           return;
         }
 
         if (!response.ok) {
-          const errData = await response.json();
+          const errData = await response.json().catch(() => ({}));
           bubble.classList.remove('streaming-cursor');
           bubble.textContent = 'Error: ' + (errData.error || 'Request failed') + (errData.debug ? '\n[debug] ' + JSON.stringify(errData.debug) : '');
           isStreaming = false;
-          document.getElementById('sendButton').disabled = false;
+          abortController = null;
+          setSendButtonMode('send');
           return;
         }
 
@@ -1265,25 +1437,46 @@
           }
         }
 
-        bubble.classList.remove('streaming-cursor');
-        if (fullText) {
-          bubble.innerHTML = marked.parse(fullText);
-          bubble.querySelectorAll('pre code').forEach(block => {
-            hljs.highlightElement(block);
-          });
-          conversationHistory.push({ role: 'assistant', content: fullText });
-        } else {
-          bubble.textContent = 'No response received';
-        }
+        finalizeBubble(null);
 
       } catch (error) {
-        bubble.classList.remove('streaming-cursor');
-        bubble.textContent = 'Network error: ' + error.message;
+        if (error.name === 'AbortError') {
+          finalizeBubble('// stream stopped by user');
+        } else {
+          bubble.classList.remove('streaming-cursor');
+          bubble.textContent = 'Network error: ' + error.message;
+        }
       }
 
       isStreaming = false;
-      document.getElementById('sendButton').disabled = false;
+      abortController = null;
+      setSendButtonMode('send');
       chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    function stopStreaming() {
+      if (abortController) {
+        try { abortController.abort(); } catch (e) {}
+      }
+    }
+
+    function handleSendClick() {
+      if (isStreaming) stopStreaming();
+      else sendMessage();
+    }
+
+    function setSendButtonMode(mode) {
+      const btn = document.getElementById('sendButton');
+      if (!btn) return;
+      if (mode === 'stop') {
+        btn.textContent = 'STOP';
+        btn.classList.add('stop-mode');
+        btn.disabled = false;
+      } else {
+        btn.textContent = 'SEND';
+        btn.classList.remove('stop-mode');
+        btn.disabled = false;
+      }
     }
 
     // Add message to chat (non-streaming)
@@ -1312,14 +1505,93 @@
 
       messageDiv.appendChild(bubble);
       messageDiv.appendChild(timeEl);
+
+      if (renderMarkdown && type === 'assistant') {
+        enhanceCodeBlocks(bubble);
+        attachMessageActions(messageDiv, () => content);
+      }
+
       chatMessages.appendChild(messageDiv);
       chatMessages.scrollTop = chatMessages.scrollHeight;
 
       return messageDiv;
     }
 
+    // ===== Copy helpers =====
+    function enhanceCodeBlocks(bubble) {
+      bubble.querySelectorAll('pre').forEach(pre => {
+        if (pre.querySelector('.code-copy-btn')) return;
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'code-copy-btn';
+        btn.textContent = 'COPY';
+        btn.addEventListener('click', () => {
+          const code = pre.querySelector('code');
+          const text = code ? code.innerText : pre.innerText;
+          copyText(text, btn);
+        });
+        pre.appendChild(btn);
+      });
+    }
+
+    function attachMessageActions(messageDiv, getText) {
+      if (messageDiv.querySelector('.message-actions')) return;
+      const actions = document.createElement('div');
+      actions.className = 'message-actions';
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'msg-action-btn';
+      btn.textContent = 'COPY';
+      btn.addEventListener('click', () => copyText(getText(), btn));
+      actions.appendChild(btn);
+      messageDiv.appendChild(actions);
+    }
+
+    function copyText(text, btn) {
+      const flash = () => {
+        btn.classList.add('copied');
+        const orig = btn.textContent === 'COPIED' ? 'COPY' : btn.textContent;
+        btn.textContent = 'COPIED';
+        setTimeout(() => {
+          btn.classList.remove('copied');
+          btn.textContent = orig;
+        }, 1400);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(flash).catch(() => {
+          fallbackCopy(text); flash();
+        });
+      } else {
+        fallbackCopy(text); flash();
+      }
+    }
+
+    function fallbackCopy(text) {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); } catch (e) {}
+      document.body.removeChild(ta);
+    }
+
+    // ===== Input UX =====
+    function autoResizeInput() {
+      const ta = document.getElementById('userInput');
+      if (!ta) return;
+      ta.style.height = 'auto';
+      ta.style.height = Math.min(ta.scrollHeight, 200) + 'px';
+    }
+
     function handleKeyPress(event) {
-      if (event.key === 'Enter') sendMessage();
+      // Respect IME composition (Chinese/Japanese/Korean input)
+      if (event.isComposing || event.keyCode === 229) return;
+      if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
+        sendMessage();
+      }
     }
   </script>
 </body>
